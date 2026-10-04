@@ -33,30 +33,19 @@ class PillNavBar extends StatelessWidget {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          if (constraints.maxWidth < 520) {
-            return Row(
-              children: [
-                for (int i = 0; i < items.length; i++)
-                  Expanded(
-                    child: _CompactNavButton(
-                      data: items[i],
-                      selected: i == currentIndex,
-                      showBadge: badgeIndices.contains(i),
-                      onTap: () => onTap(i),
-                    ),
-                  ),
-              ],
-            );
-          }
-
-          final double expandedWidth = constraints.maxWidth - _collapsedWidth * (items.length - 1);
+          final bool isMobileWidth = constraints.maxWidth < 520;
+          final double collapsedWidth = isMobileWidth
+              ? (constraints.maxWidth * 0.14).clamp(32.0, _collapsedWidth)
+              : _collapsedWidth;
+          final double labelSpacing = isMobileWidth ? 4 : 10;
+          final double expandedWidth = constraints.maxWidth - collapsedWidth * (items.length - 1);
 
           return Stack(
             children: [
               AnimatedPositionedDirectional(
                 duration: _duration,
                 curve: _curve,
-                start: currentIndex * _collapsedWidth,
+                start: currentIndex * collapsedWidth,
                 top: 0,
                 width: expandedWidth,
                 height: _itemHeight,
@@ -70,7 +59,8 @@ class PillNavBar extends StatelessWidget {
                     _NavButton(
                       data: items[i],
                       selected: i == currentIndex,
-                      width: i == currentIndex ? expandedWidth : _collapsedWidth,
+                      width: i == currentIndex ? expandedWidth : collapsedWidth,
+                      labelSpacing: labelSpacing,
                       duration: _duration,
                       curve: _curve,
                       showBadge: badgeIndices.contains(i),
@@ -86,70 +76,11 @@ class PillNavBar extends StatelessWidget {
   }
 }
 
-class _CompactNavButton extends StatelessWidget {
-  final NavItemData data;
-  final bool selected;
-  final bool showBadge;
-  final VoidCallback onTap;
-
-  const _CompactNavButton({required this.data, required this.selected, required this.showBadge, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: data.label,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: SizedBox.expand(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Icon(selected ? data.activeIcon : data.icon, size: 23, color: Colors.black),
-                  if (showBadge)
-                    Positioned(
-                      top: -2,
-                      right: -3,
-                      child: Container(
-                        width: 9,
-                        height: 9,
-                        decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 2),
-              Flexible(
-                child: Text(
-                  data.label,
-                  maxLines: 2,
-                  textAlign: TextAlign.center,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: selected ? 11 : 10,
-                    height: 1.05,
-                    fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _NavButton extends StatelessWidget {
   final NavItemData data;
   final bool selected;
   final double width;
+  final double labelSpacing;
   final Duration duration;
   final Curve curve;
   final bool showBadge;
@@ -159,6 +90,7 @@ class _NavButton extends StatelessWidget {
     required this.data,
     required this.selected,
     required this.width,
+    required this.labelSpacing,
     required this.duration,
     required this.curve,
     required this.showBadge,
@@ -176,63 +108,56 @@ class _NavButton extends StatelessWidget {
         width: width,
         height: 56,
         alignment: Alignment.center,
-        child: ClipRect(
-          child: OverflowBox(
-            maxWidth: double.infinity,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
               children: [
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 250),
-                      transitionBuilder: (child, animation) => ScaleTransition(
-                        scale: animation,
-                        child: FadeTransition(opacity: animation, child: child),
-                      ),
-                      child: Icon(
-                        selected ? data.activeIcon : data.icon,
-                        key: ValueKey<bool>(selected),
-                        size: 28,
-                        color: Colors.black,
-                      ),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  transitionBuilder: (child, animation) => ScaleTransition(
+                    scale: animation,
+                    child: FadeTransition(opacity: animation, child: child),
+                  ),
+                  child: Icon(
+                    selected ? data.activeIcon : data.icon,
+                    key: ValueKey<bool>(selected),
+                    size: 28,
+                    color: Colors.black,
+                  ),
+                ),
+                if (showBadge)
+                  Positioned(
+                    top: -2,
+                    right: -2,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
                     ),
-                    if (showBadge)
-                      Positioned(
-                        top: -2,
-                        right: -2,
-                        child: Container(
-                          width: 10,
-                          height: 10,
-                          decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
-                        ),
-                      ),
-                  ],
-                ),
-                AnimatedSize(
-                  duration: duration,
-                  curve: curve,
-                  alignment: AlignmentDirectional.centerStart,
-                  child: selected
-                      ? TweenAnimationBuilder<double>(
-                          tween: Tween<double>(begin: 0, end: 1),
-                          duration: const Duration(milliseconds: 400),
-                          builder: (context, value, child) => Opacity(opacity: value, child: child),
-                          child: Padding(
-                            padding: const EdgeInsetsDirectional.only(start: 10),
-                            child: Text(
-                              data.label,
-                              maxLines: 1,
-                              style: const TextStyle(color: Colors.black, fontSize: 17, fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                        )
-                      : const SizedBox.shrink(),
-                ),
+                  ),
               ],
             ),
-          ),
+            SizedBox(width: selected ? labelSpacing : 0),
+            AnimatedSize(
+              duration: duration,
+              curve: curve,
+              alignment: AlignmentDirectional.centerStart,
+              child: selected
+                  ? TweenAnimationBuilder<double>(
+                      tween: Tween<double>(begin: 0, end: 1),
+                      duration: const Duration(milliseconds: 400),
+                      builder: (context, value, child) => Opacity(opacity: value, child: child),
+                      child: Text(
+                        data.label,
+                        maxLines: 1,
+                        style: const TextStyle(color: Colors.black, fontSize: 17, fontWeight: FontWeight.w600),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ],
         ),
       ),
     );

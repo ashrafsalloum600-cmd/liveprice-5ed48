@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'currency_rates_screen.dart';
 import 'firebase_options.dart';
@@ -8,15 +9,22 @@ import 'splash_screen.dart';
 import 'product_card.dart';
 import 'screens/admin_price_upload_screen.dart';
 import 'screens/notifications_screen.dart';
+import 'services/fcm_service.dart';
 import 'services/notification_center.dart';
+import 'services/pricing.dart';
 import 'user_profile_screen.dart';
+import 'widgets/currency_toggle.dart';
 import 'widgets/pill_nav_bar.dart';
+import 'widgets/rate_banner.dart';
 import 'widgets/search_pill.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  Pricing.instance.start();
+  registerFcmBackgroundHandler();
   runApp(const MyApp());
+  initFcm();
 }
 
 class MyApp extends StatelessWidget {
@@ -26,6 +34,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      navigatorKey: navigatorKey,
       theme: ThemeData(useMaterial3: true, colorSchemeSeed: const Color(0xFF1E88E5)),
       home: const SplashScreen(next: DemoPage()),
     );
@@ -41,6 +50,8 @@ class DemoPage extends StatefulWidget {
 
 class _DemoPageState extends State<DemoPage> {
   int _index = 0;
+  String _searchQuery = '';
+  List<String> _searchHistory = [];
 
   static const List<NavItemData> _items = <NavItemData>[
     NavItemData(icon: Icons.home_outlined, activeIcon: Icons.home_rounded, label: 'الصفحة الرئيسية'),
@@ -53,6 +64,25 @@ class _DemoPageState extends State<DemoPage> {
   void initState() {
     super.initState();
     NotificationCenter.instance.start();
+    _loadSearchHistory();
+  }
+
+  Future<void> _loadSearchHistory() async {
+    final preferences = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() => _searchHistory = preferences.getStringList('search_history') ?? []);
+  }
+
+  Future<void> _saveSearch(String value) async {
+    final query = value.trim();
+    if (query.isEmpty) return;
+    final preferences = await SharedPreferences.getInstance();
+    final history = [
+      query,
+      ...?preferences.getStringList('search_history'),
+    ].where((entry) => entry.toLowerCase() != query.toLowerCase()).take(8).toList();
+    await preferences.setStringList('search_history', history);
+    if (mounted) setState(() => _searchHistory = history);
   }
 
   @override
@@ -61,6 +91,7 @@ class _DemoPageState extends State<DemoPage> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFE4E4E4),
+      extendBody: true,
       body: SafeArea(
         bottom: false,
         child: _index == 3
@@ -75,26 +106,44 @@ class _DemoPageState extends State<DemoPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: <Widget>[
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: GestureDetector(
-                            onLongPress: () =>
-                                Navigator.of(context)
-                                    .push(MaterialPageRoute(builder: (_) => const AdminPriceUploadScreen())),
-                            child: const Text(
-                              'My Price',
-                              style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: Colors.black),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: <Widget>[
+                            GestureDetector(
+                              onLongPress: () =>
+                                  Navigator.of(context)
+                                      .push(MaterialPageRoute(builder: (_) => const AdminPriceUploadScreen())),
+                              child: const Text(
+                                'My Price',
+                                style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: Colors.black),
+                              ),
                             ),
-                          ),
+                          ],
                         ),
                         const SizedBox(height: 14),
-                        SearchPill(onChanged: (String value) {}),
+                        SearchPill(
+                          onChanged: (value) => setState(() => _searchQuery = value),
+                          onSearchSubmitted: _saveSearch,
+                          onHistorySelected: (value) {
+                            setState(() => _searchQuery = value);
+                            _saveSearch(value);
+                          },
+                          history: _searchHistory,
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: const [
+                            Expanded(child: RateBanner()),
+                            SizedBox(width: 10),
+                            CurrencyToggle(),
+                          ],
+                        ),
                       ],
                     ),
                   ),
                   Expanded(
                     child: _index == 0
-                        ? const ProductsGrid()
+                        ? ProductsGrid(searchQuery: _searchQuery)
                         : _index == 1
                         ? const NotificationsScreen()
                         : Center(
