@@ -1,0 +1,29 @@
+name: liveprice
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  lottie: ^3.6.1
+  http: ^1.2.0
+  firebase_core: ^3.0.0
+  firebase_auth: ^5.7.0
+  google_sign_in: ^6.3.0
+  cloud_firestore: ^5.0.0
+  file_picker: ^13.1.0
+  flutter_svg: ^2.0.10
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/welcompic/welcompic1.json

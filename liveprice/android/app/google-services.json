@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "454939057507",
+    "firebase_url": "https://liveprice-5ed48-default-rtdb.firebaseio.com",
+    "project_id": "liveprice-5ed48",
+    "storage_bucket": "liveprice-5ed48.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:454939057507:android:adb8252b06059e675f0756",
+        "android_client_info": {
+          "package_name": "com.novacode.liveprice"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "454939057507-t63sitqgn7l2kmqjtnq16i9fsij9g54j.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.novacode.liveprice",
+            "certificate_hash": "d8a7852255c25a714762191dda24f21ea4657c52"
+          }
+        },
+        {
+          "client_id": "454939057507-bojtmuo4jlej8o5vja8jd31ipnuokdgi.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBc7K_sIAfVSzOur_EukHw-VldeQDbmfQA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "454939057507-bojtmuo4jlej8o5vja8jd31ipnuokdgi.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "454939057507-olcg1tdlagsbo2fhb1kp661a5im26p0f.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.liveprice"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
