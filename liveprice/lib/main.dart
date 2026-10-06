@@ -47,13 +47,13 @@ class DemoPage extends StatefulWidget {
 
 class _DemoPageState extends State<DemoPage> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
-  int _index = 0;
+  int _index = 1;
   bool _searchVisible = true;
   String _query = '';
 
   static const List<NavItemData> _items = <NavItemData>[
-    NavItemData(icon: Icons.home_outlined, activeIcon: Icons.home_rounded, label: 'الصفحة الرئيسية'),
     NavItemData(icon: Icons.notifications_none_rounded, activeIcon: Icons.notifications_rounded, label: 'التنبيهات'),
+    NavItemData(icon: Icons.home_outlined, activeIcon: Icons.home_rounded, label: 'الصفحة الرئيسية'),
     NavItemData(icon: Icons.attach_money_outlined, activeIcon: Icons.attach_money_rounded, label: 'اسعار الدولار'),
   ];
 
@@ -77,6 +77,7 @@ class _DemoPageState extends State<DemoPage> {
   @override
   Widget build(BuildContext context) {
     final int alertsIndex = _items.indexWhere((item) => item.label == 'التنبيهات');
+    final int homeIndex = _items.indexWhere((item) => item.label == 'الصفحة الرئيسية');
 
     return Scaffold(
       key: _scaffoldKey,
@@ -126,9 +127,9 @@ class _DemoPageState extends State<DemoPage> {
             Expanded(
               child: NotificationListener<ScrollNotification>(
                 onNotification: _onScroll,
-                child: _index == 0
+                child: _index == homeIndex
                     ? ProductsGrid(searchQuery: _query)
-                    : _index == 1
+                    : _index == alertsIndex
                     ? const NotificationsScreen()
                     : const CurrencyRatesScreen(),
               ),
