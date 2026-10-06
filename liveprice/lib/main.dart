@@ -107,6 +107,7 @@ class _DemoPageState extends State<DemoPage> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: <Widget>[
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: <Widget>[
                             GestureDetector(
@@ -118,6 +119,7 @@ class _DemoPageState extends State<DemoPage> {
                                 style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: Colors.black),
                               ),
                             ),
+                            const CurrencyToggle(),
                           ],
                         ),
                         const SizedBox(height: 14),
@@ -131,13 +133,7 @@ class _DemoPageState extends State<DemoPage> {
                           history: _searchHistory,
                         ),
                         const SizedBox(height: 12),
-                        Row(
-                          children: const [
-                            Expanded(child: RateBanner()),
-                            SizedBox(width: 10),
-                            CurrencyToggle(),
-                          ],
-                        ),
+                        const RateBanner(),
                       ],
                     ),
                   ),
