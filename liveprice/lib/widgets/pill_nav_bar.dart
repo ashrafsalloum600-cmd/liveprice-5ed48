@@ -16,7 +16,6 @@ class PillNavBar extends StatelessWidget {
     this.badgeIndices = const {},
   });
 
-  static const double _itemHeight = 56;
   static const double _collapsedWidth = 64;
   static const Duration _duration = Duration(milliseconds: 350);
   static const Curve _curve = Curves.easeOutCubic;
