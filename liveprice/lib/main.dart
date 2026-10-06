@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'currency_rates_screen.dart';
 import 'firebase_options.dart';
@@ -12,11 +11,9 @@ import 'screens/notifications_screen.dart';
 import 'services/fcm_service.dart';
 import 'services/notification_center.dart';
 import 'services/pricing.dart';
-import 'user_profile_screen.dart';
-import 'widgets/currency_toggle.dart';
+import 'widgets/app_drawer.dart';
 import 'widgets/pill_nav_bar.dart';
-import 'widgets/rate_banner.dart';
-import 'widgets/search_pill.dart';
+import 'widgets/top_search_bar.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,40 +46,32 @@ class DemoPage extends StatefulWidget {
 }
 
 class _DemoPageState extends State<DemoPage> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
   int _index = 0;
-  String _searchQuery = '';
-  List<String> _searchHistory = [];
+  bool _searchVisible = true;
+  String _query = '';
 
   static const List<NavItemData> _items = <NavItemData>[
     NavItemData(icon: Icons.home_outlined, activeIcon: Icons.home_rounded, label: 'الصفحة الرئيسية'),
     NavItemData(icon: Icons.notifications_none_rounded, activeIcon: Icons.notifications_rounded, label: 'التنبيهات'),
     NavItemData(icon: Icons.attach_money_outlined, activeIcon: Icons.attach_money_rounded, label: 'اسعار الدولار'),
-    NavItemData(icon: Icons.people_outline_rounded, activeIcon: Icons.people_alt_rounded, label: 'الملف الشخصي'),
   ];
 
   @override
   void initState() {
     super.initState();
     NotificationCenter.instance.start();
-    _loadSearchHistory();
   }
 
-  Future<void> _loadSearchHistory() async {
-    final preferences = await SharedPreferences.getInstance();
-    if (!mounted) return;
-    setState(() => _searchHistory = preferences.getStringList('search_history') ?? []);
-  }
-
-  Future<void> _saveSearch(String value) async {
-    final query = value.trim();
-    if (query.isEmpty) return;
-    final preferences = await SharedPreferences.getInstance();
-    final history = [
-      query,
-      ...?preferences.getStringList('search_history'),
-    ].where((entry) => entry.toLowerCase() != query.toLowerCase()).take(8).toList();
-    await preferences.setStringList('search_history', history);
-    if (mounted) setState(() => _searchHistory = history);
+  bool _onScroll(ScrollNotification n) {
+    if (n is! ScrollUpdateNotification || n.depth != 0 || n.metrics.axis != Axis.vertical) return false;
+    final p = n.metrics.pixels;
+    if (_searchVisible && p > 56 && _query.isEmpty) {
+      setState(() => _searchVisible = false);
+    } else if (!_searchVisible && p <= 0) {
+      setState(() => _searchVisible = true);
+    }
+    return false;
   }
 
   @override
@@ -90,83 +79,61 @@ class _DemoPageState extends State<DemoPage> {
     final int alertsIndex = _items.indexWhere((item) => item.label == 'التنبيهات');
 
     return Scaffold(
+      key: _scaffoldKey,
+      drawer: const AppDrawer(),
       backgroundColor: const Color(0xFFE4E4E4),
-      extendBody: true,
       body: SafeArea(
         bottom: false,
-        child: _index == 3
-            ? const UserProfileScreen()
-            : _index == 2
-            ? const CurrencyRatesScreen()
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: <Widget>[
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: <Widget>[
-                            GestureDetector(
-                              onLongPress: () =>
-                                  Navigator.of(context)
-                                      .push(MaterialPageRoute(builder: (_) => const AdminPriceUploadScreen())),
-                              child: const Text(
-                                'My Price',
-                                style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: Colors.black),
-                              ),
-                            ),
-                            const CurrencyToggle(),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        SearchPill(
-                          onChanged: (value) => setState(() => _searchQuery = value),
-                          onSearchSubmitted: _saveSearch,
-                          onHistorySelected: (value) {
-                            setState(() => _searchQuery = value);
-                            _saveSearch(value);
-                          },
-                          history: _searchHistory,
-                        ),
-                        const SizedBox(height: 12),
-                        const RateBanner(),
-                      ],
-                    ),
+        child: Column(
+          children: <Widget>[
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              height: _searchVisible ? 68 : 0,
+              clipBehavior: Clip.hardEdge,
+              decoration: const BoxDecoration(),
+              child: SingleChildScrollView(
+                physics: const NeverScrollableScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                  child: TopSearchBar(
+                    onMenu: () => _scaffoldKey.currentState?.openDrawer(),
+                    onChanged: (query) => setState(() => _query = query),
+                    onAdminLongPress: () =>
+                        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdminPriceUploadScreen())),
                   ),
-                  Expanded(
-                    child: _index == 0
-                        ? ProductsGrid(searchQuery: _searchQuery)
-                        : _index == 1
-                        ? const NotificationsScreen()
-                        : Center(
-                            child: Text(
-                              _items[_index].label,
-                              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                  ),
-                ],
+                ),
               ),
-      ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-          child: AnimatedBuilder(
-            animation: NotificationCenter.instance,
-            builder: (context, _) => PillNavBar(
-              items: _items,
-              currentIndex: _index,
-              badgeIndices: NotificationCenter.instance.hasUnread ? {alertsIndex} : const {},
-              onTap: (index) {
-                setState(() => _index = index);
-                if (index == alertsIndex) NotificationCenter.instance.markAllRead();
-              },
             ),
-          ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+              child: AnimatedBuilder(
+                animation: NotificationCenter.instance,
+                builder: (context, _) => PillNavBar(
+                  items: _items,
+                  currentIndex: _index,
+                  badgeIndices: NotificationCenter.instance.hasUnread ? {alertsIndex} : const {},
+                  onTap: (index) {
+                    setState(() {
+                      _index = index;
+                      _searchVisible = true;
+                    });
+                    if (index == alertsIndex) NotificationCenter.instance.markAllRead();
+                  },
+                ),
+              ),
+            ),
+            Expanded(
+              child: NotificationListener<ScrollNotification>(
+                onNotification: _onScroll,
+                child: _index == 0
+                    ? ProductsGrid(searchQuery: _query)
+                    : _index == 1
+                    ? const NotificationsScreen()
+                    : const CurrencyRatesScreen(),
+              ),
+            ),
+          ],
         ),
       ),
     );

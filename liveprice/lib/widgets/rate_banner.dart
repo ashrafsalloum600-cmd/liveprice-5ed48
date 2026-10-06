@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:liveprice/services/pricing.dart';
 
 class RateBanner extends StatefulWidget {
-  const RateBanner({super.key});
+  final bool flat;
+
+  const RateBanner({super.key, this.flat = false});
 
   @override
   State<RateBanner> createState() => _RateBannerState();
@@ -82,11 +84,13 @@ class _RateBannerState extends State<RateBanner> with SingleTickerProviderStateM
           height: 40,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(40),
-            boxShadow: [BoxShadow(color: Colors.black.withAlpha(30), blurRadius: 24, offset: const Offset(0, 8))],
-          ),
+          decoration: widget.flat
+              ? null
+              : BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(40),
+                  boxShadow: [BoxShadow(color: Colors.black.withAlpha(30), blurRadius: 24, offset: const Offset(0, 8))],
+                ),
           child: FittedBox(
             fit: BoxFit.scaleDown,
             child: Directionality(

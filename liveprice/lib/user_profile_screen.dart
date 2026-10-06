@@ -14,6 +14,35 @@ class UserProfileScreen extends StatefulWidget {
 }
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: UserProfileScreen.bg,
+        appBar: AppBar(
+          backgroundColor: UserProfileScreen.bg,
+          elevation: 0,
+          centerTitle: true,
+          title: const Text(
+            'الملف الشخصي',
+            style: TextStyle(fontFamily: 'Cairo', color: Colors.black, fontWeight: FontWeight.w700),
+          ),
+        ),
+        body: const ProfileContent(),
+      ),
+    );
+  }
+}
+
+class ProfileContent extends StatefulWidget {
+  const ProfileContent({super.key});
+
+  @override
+  State<ProfileContent> createState() => _ProfileContentState();
+}
+
+class _ProfileContentState extends State<ProfileContent> {
   final AuthService _authService = AuthService();
   bool _isSigningIn = false;
 
@@ -45,65 +74,53 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Widget build(BuildContext context) {
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: UserProfileScreen.bg,
-        appBar: AppBar(
-          backgroundColor: UserProfileScreen.bg,
-          elevation: 0,
-          centerTitle: true,
-          title: const Text(
-            'الملف الشخصي',
-            style: TextStyle(fontFamily: 'Cairo', color: Colors.black, fontWeight: FontWeight.w700),
-          ),
-        ),
-        body: StreamBuilder<User?>(
-          stream: _authService.authStateChanges,
-          builder: (context, snapshot) {
-            final User? user = snapshot.data;
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-              children: [
-                _ProfileHeader(user: user),
-                const SizedBox(height: 16),
-                if (user == null) ...[
-                  SocialSignInButtons(isGoogleLoading: _isSigningIn, onGooglePressed: _signInWithGoogle),
-                  const SizedBox(height: 20),
-                ] else
-                  const SizedBox(height: 20),
-                const _SectionCard(
-                  title: 'الحساب الشخصي',
-                  items: [
-                    _ProfileItem(icon: Icons.person_outline_rounded, label: 'المعلومات الشخصية'),
-                    _ProfileItem(icon: Icons.shopping_bag_outlined, label: 'طلباتي'),
-                    _ProfileItem(icon: Icons.favorite_border_rounded, label: 'المفضلة'),
-                    _ProfileItem(icon: Icons.location_on_outlined, label: 'العناوين المسجلة'),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                const _SectionCard(
-                  title: 'التفضيلات والدعم',
-                  items: [
-                    _ProfileItem(icon: Icons.notifications_none_rounded, label: 'التنبيهات'),
-                    _ProfileItem(icon: Icons.language_rounded, label: 'اللغة والأنماط'),
-                    _ProfileItem(icon: Icons.support_agent_rounded, label: 'الدعم والمساعدة'),
-                    _ProfileItem(icon: Icons.privacy_tip_outlined, label: 'الخصوصية والشروط'),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                _SectionCard(
-                  items: [
-                    _ProfileItem(
-                      icon: Icons.logout_rounded,
-                      label: 'تسجيل الخروج',
-                      color: Colors.redAccent,
-                      onTap: user == null ? null : _signOut,
-                    ),
-                  ],
-                ),
-              ],
-            );
-          },
-        ),
+      child: StreamBuilder<User?>(
+        stream: _authService.authStateChanges,
+        builder: (context, snapshot) {
+          final User? user = snapshot.data;
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            children: [
+              _ProfileHeader(user: user),
+              const SizedBox(height: 16),
+              if (user == null) ...[
+                SocialSignInButtons(isGoogleLoading: _isSigningIn, onGooglePressed: _signInWithGoogle),
+                const SizedBox(height: 20),
+              ] else
+                const SizedBox(height: 20),
+              const _SectionCard(
+                title: 'الحساب الشخصي',
+                items: [
+                  _ProfileItem(icon: Icons.person_outline_rounded, label: 'المعلومات الشخصية'),
+                  _ProfileItem(icon: Icons.shopping_bag_outlined, label: 'طلباتي'),
+                  _ProfileItem(icon: Icons.favorite_border_rounded, label: 'المفضلة'),
+                  _ProfileItem(icon: Icons.location_on_outlined, label: 'العناوين المسجلة'),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const _SectionCard(
+                title: 'التفضيلات والدعم',
+                items: [
+                  _ProfileItem(icon: Icons.notifications_none_rounded, label: 'التنبيهات'),
+                  _ProfileItem(icon: Icons.language_rounded, label: 'اللغة والأنماط'),
+                  _ProfileItem(icon: Icons.support_agent_rounded, label: 'الدعم والمساعدة'),
+                  _ProfileItem(icon: Icons.privacy_tip_outlined, label: 'الخصوصية والشروط'),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _SectionCard(
+                items: [
+                  _ProfileItem(
+                    icon: Icons.logout_rounded,
+                    label: 'تسجيل الخروج',
+                    color: Colors.redAccent,
+                    onTap: user == null ? null : _signOut,
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }
