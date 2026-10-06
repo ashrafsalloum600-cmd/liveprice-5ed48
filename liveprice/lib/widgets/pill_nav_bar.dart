@@ -26,11 +26,6 @@ class PillNavBar extends StatelessWidget {
     return Container(
       height: 72,
       padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(40),
-        boxShadow: [BoxShadow(color: Colors.black.withAlpha(30), blurRadius: 24, offset: const Offset(0, 8))],
-      ),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final bool isMobileWidth = constraints.maxWidth < 520;
@@ -42,17 +37,6 @@ class PillNavBar extends StatelessWidget {
 
           return Stack(
             children: [
-              AnimatedPositionedDirectional(
-                duration: _duration,
-                curve: _curve,
-                start: currentIndex * collapsedWidth,
-                top: 0,
-                width: expandedWidth,
-                height: _itemHeight,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(color: const Color(0xFFE6E6E6), borderRadius: BorderRadius.circular(28)),
-                ),
-              ),
               Row(
                 children: [
                   for (int i = 0; i < items.length; i++)
@@ -108,56 +92,68 @@ class _NavButton extends StatelessWidget {
         width: width,
         height: 56,
         alignment: Alignment.center,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 250),
-                  transitionBuilder: (child, animation) => ScaleTransition(
-                    scale: animation,
-                    child: FadeTransition(opacity: animation, child: child),
-                  ),
-                  child: Icon(
-                    selected ? data.activeIcon : data.icon,
-                    key: ValueKey<bool>(selected),
-                    size: 28,
-                    color: Colors.black,
-                  ),
-                ),
-                if (showBadge)
-                  Positioned(
-                    top: -2,
-                    right: -2,
-                    child: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
+        child: AnimatedContainer(
+          duration: duration,
+          curve: curve,
+          padding: selected ? const EdgeInsets.symmetric(horizontal: 12, vertical: 6) : EdgeInsets.zero,
+          decoration: selected
+              ? BoxDecoration(
+                  color: const Color(0xFFE6E6E6),
+                  border: Border.all(color: const Color(0xFFCECECE), width: 1.5),
+                  borderRadius: BorderRadius.circular(20),
+                )
+              : null,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 250),
+                    transitionBuilder: (child, animation) => ScaleTransition(
+                      scale: animation,
+                      child: FadeTransition(opacity: animation, child: child),
+                    ),
+                    child: Icon(
+                      selected ? data.activeIcon : data.icon,
+                      key: ValueKey<bool>(selected),
+                      size: 28,
+                      color: Colors.black,
                     ),
                   ),
-              ],
-            ),
-            SizedBox(width: selected ? labelSpacing : 0),
-            AnimatedSize(
-              duration: duration,
-              curve: curve,
-              alignment: AlignmentDirectional.centerStart,
-              child: selected
-                  ? TweenAnimationBuilder<double>(
-                      tween: Tween<double>(begin: 0, end: 1),
-                      duration: const Duration(milliseconds: 400),
-                      builder: (context, value, child) => Opacity(opacity: value, child: child),
-                      child: Text(
-                        data.label,
-                        maxLines: 1,
-                        style: const TextStyle(color: Colors.black, fontSize: 17, fontWeight: FontWeight.w600),
+                  if (showBadge)
+                    Positioned(
+                      top: -2,
+                      right: -2,
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
                       ),
-                    )
-                  : const SizedBox.shrink(),
-            ),
-          ],
+                    ),
+                ],
+              ),
+              SizedBox(width: selected ? labelSpacing : 0),
+              AnimatedSize(
+                duration: duration,
+                curve: curve,
+                alignment: AlignmentDirectional.centerStart,
+                child: selected
+                    ? TweenAnimationBuilder<double>(
+                        tween: Tween<double>(begin: 0, end: 1),
+                        duration: const Duration(milliseconds: 400),
+                        builder: (context, value, child) => Opacity(opacity: value, child: child),
+                        child: Text(
+                          data.label,
+                          maxLines: 1,
+                          style: const TextStyle(color: Colors.black, fontSize: 17, fontWeight: FontWeight.w600),
+                        ),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ),
         ),
       ),
     );
