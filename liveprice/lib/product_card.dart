@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:liveprice/models/product_model.dart';
 import 'package:liveprice/services/firestore_service.dart';
 import 'package:liveprice/services/pricing.dart';
-import 'package:liveprice/widgets/currency_toggle.dart';
 import 'package:liveprice/theme/app_colors.dart';
+import 'package:liveprice/widgets/currency_toggle.dart';
 
 class ProductsGrid extends StatefulWidget {
   final String searchQuery;
@@ -13,15 +13,40 @@ class ProductsGrid extends StatefulWidget {
   State<ProductsGrid> createState() => _ProductsGridState();
 }
 
-class _ProductsGridState extends State<ProductsGrid> {
+class _ProductsGridState extends State<ProductsGrid> with SingleTickerProviderStateMixin {
+  static const int _staggerCount = 12;
+  static const int _staggerMs = 40;
+  static const int _itemMs = 320;
+  static const int _totalMs = _staggerCount * _staggerMs + _itemMs;
+
   static List<ProductModel>? _cache;
   late final Future<List<ProductModel>> _future;
+  late final AnimationController _stagger = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: _totalMs),
+  );
+  late final List<Animation<double>> _anims = List.generate(
+    _staggerCount,
+    (i) => CurvedAnimation(
+      parent: _stagger,
+      curve: Interval(i * _staggerMs / _totalMs, (i * _staggerMs + _itemMs) / _totalMs, curve: Curves.easeOut),
+    ),
+  );
   final Set<String> _favoriteIds = {};
 
   @override
   void initState() {
     super.initState();
     _future = _cache != null ? Future.value(_cache!) : FirestoreService().getProducts().then((list) => _cache = list);
+    _future.then((_) {
+      if (mounted) _stagger.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _stagger.dispose();
+    super.dispose();
   }
 
   @override
@@ -30,7 +55,7 @@ class _ProductsGridState extends State<ProductsGrid> {
       future: _future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: AppColors.text));
+          return const Center(child: CircularProgressIndicator(color: AppColors.accent));
         }
         if (snapshot.hasError) {
           return const Center(child: Text('حدث خطأ بتحميل المنتجات'));
@@ -63,13 +88,24 @@ class _ProductsGridState extends State<ProductsGrid> {
                 itemCount: products.length,
                 itemBuilder: (context, i) {
                   final p = products[i];
-                  return ProductCard(
+                  Widget card = ProductCard(
                     product: p,
                     isFavorite: _favoriteIds.contains(p.id),
                     onFavoriteToggle: () => setState(() {
                       if (!_favoriteIds.remove(p.id)) _favoriteIds.add(p.id);
                     }),
                   );
+                  if (i < _staggerCount) {
+                    final a = _anims[i];
+                    card = FadeTransition(
+                      opacity: a,
+                      child: SlideTransition(
+                        position: Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero).animate(a),
+                        child: card,
+                      ),
+                    );
+                  }
+                  return card;
                 },
               ),
             ),
@@ -80,7 +116,7 @@ class _ProductsGridState extends State<ProductsGrid> {
   }
 }
 
-class ProductCard extends StatelessWidget {
+class ProductCard extends StatefulWidget {
   final ProductModel product;
   final bool isFavorite;
   final VoidCallback onFavoriteToggle;
@@ -88,107 +124,163 @@ class ProductCard extends StatelessWidget {
   const ProductCard({super.key, required this.product, required this.isFavorite, required this.onFavoriteToggle});
 
   @override
+  State<ProductCard> createState() => _ProductCardState();
+}
+
+class _ProductCardState extends State<ProductCard> {
+  bool _hover = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Container(
+    final p = widget.product;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOut,
+        transform: Matrix4.translationValues(0, _hover ? -2 : 0, 0),
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: Colors.black.withAlpha(24), blurRadius: 14, offset: const Offset(0, 6))],
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [AppColors.surfaceTop, AppColors.surface],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(_hover ? 110 : 70),
+              blurRadius: _hover ? 20 : 14,
+              offset: Offset(0, _hover ? 10 : 6),
+            ),
+          ],
         ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Container(
-                    color: AppColors.surfaceRaised,
-                    child: product.imageUrl.isEmpty
-                        ? const Icon(Icons.image_outlined, size: 32, color: AppColors.mutedText)
-                        : Image.network(
-                            product.imageUrl,
-                            fit: BoxFit.cover,
-                            cacheWidth: 300,
-                            gaplessPlayback: true,
-                            errorBuilder: (_, _, _) =>
-                                const Icon(Icons.image_outlined, size: 32, color: AppColors.mutedText),
-                          ),
+        child: Directionality(
+          textDirection: TextDirection.rtl,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Container(
+                        color: AppColors.surfaceHigh,
+                        child: p.imageUrl.isEmpty
+                            ? const Icon(Icons.image_outlined, size: 32, color: AppColors.textFaint)
+                            : Image.network(
+                                p.imageUrl,
+                                fit: BoxFit.cover,
+                                cacheWidth: 300,
+                                gaplessPlayback: true,
+                                errorBuilder: (_, _, _) =>
+                                    const Icon(Icons.image_outlined, size: 32, color: AppColors.textFaint),
+                              ),
+                      ),
+                      Positioned(
+                        top: 6,
+                        left: 6,
+                        child: _HeartButton(isFavorite: widget.isFavorite, onTap: widget.onFavoriteToggle),
+                      ),
+                    ],
                   ),
-                  Positioned(
-                    top: 6,
-                    left: 6,
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: onFavoriteToggle,
-                      child: Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(color: AppColors.surface.withAlpha(230), shape: BoxShape.circle),
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
-                          child: Icon(
-                            isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                            key: ValueKey(isFavorite),
-                            size: 17,
-                            color: isFavorite ? Colors.redAccent : AppColors.mutedText,
-                          ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      height: 30,
+                      child: Text(
+                        p.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          height: 1.2,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.text,
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    height: 32,
-                    child: Text(
-                      product.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        height: 1.25,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.text,
+                    const SizedBox(height: 3),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: AlignmentDirectional.centerStart,
+                      child: AnimatedBuilder(
+                        animation: Pricing.instance,
+                        builder: (context, _) => Text(
+                          Pricing.instance.format(p),
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.accent),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: AlignmentDirectional.centerStart,
-                    child: AnimatedBuilder(
-                      animation: Pricing.instance,
-                      builder: (context, _) => Text(
-                        Pricing.instance.format(product),
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.text),
+                    SizedBox(
+                      height: 13,
+                      child: Text(
+                        p.unit.isEmpty ? '' : '/ ${p.unit}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 10.5, color: AppColors.textFaint),
                       ),
                     ),
-                  ),
-                  SizedBox(
-                    height: 14,
-                    child: Text(
-                      product.unit.isEmpty ? '' : '/ ${product.unit}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 10.5, color: AppColors.mutedText),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HeartButton extends StatefulWidget {
+  final bool isFavorite;
+  final VoidCallback onTap;
+  const _HeartButton({required this.isFavorite, required this.onTap});
+
+  @override
+  State<_HeartButton> createState() => _HeartButtonState();
+}
+
+class _HeartButtonState extends State<_HeartButton> {
+  bool _down = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) => setState(() => _down = true),
+      onTapUp: (_) => setState(() => _down = false),
+      onTapCancel: () => setState(() => _down = false),
+      onTap: widget.onTap,
+      child: AnimatedScale(
+        scale: _down ? 0.85 : 1,
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeOut,
+        child: Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(color: AppColors.bg.withAlpha(200), shape: BoxShape.circle),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+            child: Icon(
+              widget.isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+              key: ValueKey(widget.isFavorite),
+              size: 17,
+              color: widget.isFavorite ? Colors.redAccent : AppColors.textDim,
             ),
-          ],
+          ),
         ),
       ),
     );

@@ -63,7 +63,7 @@ class _CurrencyRatesScreenState extends State<CurrencyRatesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.bg,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _fetchRates,
@@ -71,7 +71,7 @@ class _CurrencyRatesScreenState extends State<CurrencyRatesScreen> {
               ? const Center(child: CircularProgressIndicator(color: AppColors.text))
               : _error != null
               ? Center(
-                  child: Text(_error!, style: const TextStyle(color: AppColors.mutedText)),
+                  child: Text(_error!, style: const TextStyle(color: AppColors.textDim)),
                 )
               : ListView(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
@@ -129,7 +129,7 @@ class _SyrianPoundHeader extends StatelessWidget {
             width: 56,
             height: 56,
             alignment: Alignment.center,
-            decoration: BoxDecoration(color: AppColors.surfaceRaised, borderRadius: BorderRadius.circular(18)),
+            decoration: BoxDecoration(color: AppColors.surfaceHigh, borderRadius: BorderRadius.circular(18)),
             child: const Text('SYP', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
           ),
           const SizedBox(width: 16),
@@ -139,14 +139,14 @@ class _SyrianPoundHeader extends StatelessWidget {
               children: [
                 const Text(
                   'الليرة السورية',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.mutedText),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textDim),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   rate != null ? '${rate!.toStringAsFixed(2)} ل.س' : '—',
                   style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.text),
                 ),
-                const Text('مقابل 1 دولار أمريكي', style: TextStyle(fontSize: 12, color: AppColors.mutedText)),
+                const Text('مقابل 1 دولار أمريكي', style: TextStyle(fontSize: 12, color: AppColors.textDim)),
               ],
             ),
           ),
@@ -184,7 +184,7 @@ class _CurrencySquare extends StatelessWidget {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 11, color: AppColors.mutedText),
+            style: const TextStyle(fontSize: 11, color: AppColors.textDim),
           ),
           Text(
             rate != null ? rate!.toStringAsFixed(3) : '—',

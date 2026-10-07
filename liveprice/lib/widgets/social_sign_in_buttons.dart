@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:liveprice/theme/app_colors.dart';
 
 const String _googleLogo = '''
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
@@ -22,7 +23,7 @@ class SocialSignInButtons extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(color: Colors.black.withAlpha(12), blurRadius: 14, offset: const Offset(0, 4))],
       ),
@@ -31,12 +32,12 @@ class SocialSignInButtons extends StatelessWidget {
         children: [
           const Text(
             'تسجيل الدخول',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.black),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.text),
           ),
           const SizedBox(height: 4),
           const Text(
             'سجّل دخولك للاحتفاظ بمفضلتك على كل أجهزتك',
-            style: TextStyle(fontSize: 12.5, color: Colors.black45),
+            style: TextStyle(fontSize: 12.5, color: AppColors.textDim),
           ),
           const SizedBox(height: 16),
           _SocialButton(

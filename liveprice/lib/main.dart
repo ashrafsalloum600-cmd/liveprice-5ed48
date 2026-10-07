@@ -36,13 +36,8 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: AppColors.background,
-        colorScheme: const ColorScheme.dark(
-          primary: AppColors.text,
-          secondary: AppColors.accent,
-          surface: AppColors.surface,
-          onSurface: AppColors.text,
-        ),
+        scaffoldBackgroundColor: AppColors.bg,
+        colorSchemeSeed: AppColors.accent,
       ),
       home: const SplashScreen(next: DemoPage()),
     );
@@ -75,6 +70,7 @@ class _DemoPageState extends State<DemoPage> {
   }
 
   bool _onScroll(ScrollNotification n) {
+    if (_index != 1) return false;
     if (n is! ScrollUpdateNotification || n.depth != 0 || n.metrics.axis != Axis.vertical) return false;
     final p = n.metrics.pixels;
     if (_searchVisible && p > 56 && _query.isEmpty) {
@@ -93,7 +89,7 @@ class _DemoPageState extends State<DemoPage> {
     return Scaffold(
       key: _scaffoldKey,
       drawer: const AppDrawer(),
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.bg,
       body: SafeArea(
         bottom: false,
         child: Column(

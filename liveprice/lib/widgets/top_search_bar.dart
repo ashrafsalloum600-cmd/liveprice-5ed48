@@ -76,7 +76,7 @@ class _TopSearchBarState extends State<TopSearchBar> {
             width: 36,
             height: 36,
             margin: const EdgeInsets.only(left: 6),
-            decoration: const BoxDecoration(color: AppColors.surfaceRaised, shape: BoxShape.circle),
+            decoration: const BoxDecoration(color: AppColors.surfaceHigh, shape: BoxShape.circle),
             child: const Icon(Icons.close_rounded, size: 20, color: AppColors.text),
           ),
         ),
@@ -92,7 +92,7 @@ class _TopSearchBarState extends State<TopSearchBar> {
               decoration: const InputDecoration(
                 border: InputBorder.none,
                 hintText: 'ابحث باسم المادة أو رمزها',
-                hintStyle: TextStyle(color: AppColors.mutedText),
+                hintStyle: TextStyle(color: AppColors.textDim),
                 contentPadding: EdgeInsets.symmetric(horizontal: 8),
               ),
             ),
@@ -112,7 +112,7 @@ class _TopSearchBarState extends State<TopSearchBar> {
         height: 56,
         padding: const EdgeInsets.symmetric(horizontal: 6),
         decoration: BoxDecoration(
-          color: AppColors.background,
+          color: AppColors.bg,
           border: Border.all(color: AppColors.border),
           borderRadius: BorderRadius.circular(12),
           boxShadow: [BoxShadow(color: Colors.black.withAlpha(30), blurRadius: 24, offset: const Offset(0, 8))],

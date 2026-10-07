@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:liveprice/theme/app_colors.dart';
 
 class AdminNotificationWidget extends StatefulWidget {
   const AdminNotificationWidget({super.key});
@@ -65,7 +66,7 @@ class _AdminNotificationWidgetState extends State<AdminNotificationWidget> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(color: Colors.black.withAlpha(12), blurRadius: 14, offset: const Offset(0, 4))],
       ),
@@ -74,7 +75,7 @@ class _AdminNotificationWidgetState extends State<AdminNotificationWidget> {
         children: [
           const Text(
             'إرسال إشعار',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.black),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.text),
           ),
           const SizedBox(height: 12),
           TextField(
@@ -93,7 +94,7 @@ class _AdminNotificationWidgetState extends State<AdminNotificationWidget> {
             child: ElevatedButton(
               onPressed: _sending ? null : _send,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
+                backgroundColor: AppColors.accent,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),

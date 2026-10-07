@@ -13,7 +13,7 @@ class NotificationsScreen extends StatelessWidget {
         final items = NotificationCenter.instance.notifications;
         if (items.isEmpty) {
           return const Center(
-            child: Text('لا توجد تنبيهات حالياً', style: TextStyle(color: AppColors.mutedText)),
+            child: Text('لا توجد تنبيهات حالياً', style: TextStyle(color: AppColors.textDim)),
           );
         }
         return ListView.separated(
@@ -34,7 +34,7 @@ class NotificationsScreen extends StatelessWidget {
                   Container(
                     width: 40,
                     height: 40,
-                    decoration: BoxDecoration(color: AppColors.surfaceRaised, borderRadius: BorderRadius.circular(12)),
+                    decoration: BoxDecoration(color: AppColors.surfaceHigh, borderRadius: BorderRadius.circular(12)),
                     alignment: Alignment.center,
                     child: const Icon(Icons.notifications_rounded, size: 20, color: AppColors.text),
                   ),
@@ -48,7 +48,7 @@ class NotificationsScreen extends StatelessWidget {
                           style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.text),
                         ),
                         const SizedBox(height: 2),
-                        Text(n.body, style: const TextStyle(fontSize: 13, color: AppColors.mutedText)),
+                        Text(n.body, style: const TextStyle(fontSize: 13, color: AppColors.textDim)),
                       ],
                     ),
                   ),

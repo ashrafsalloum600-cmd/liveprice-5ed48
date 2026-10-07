@@ -12,7 +12,7 @@ class RateBanner extends StatefulWidget {
 }
 
 class _RateBannerState extends State<RateBanner> with SingleTickerProviderStateMixin {
-  static const _label = TextStyle(fontSize: 13, color: AppColors.mutedText, fontWeight: FontWeight.w600);
+  static const _label = TextStyle(fontSize: 13, color: AppColors.textDim, fontWeight: FontWeight.w600);
   static const _red = Color(0xFFFF3B30);
   static const _green = Color(0xFF34C759);
 

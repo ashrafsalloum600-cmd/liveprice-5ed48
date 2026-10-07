@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/nav_item_data.dart';
+import '../theme/app_colors.dart';
 
 class NavButton extends StatelessWidget {
   final NavItemData data;
@@ -49,7 +50,7 @@ class NavButton extends StatelessWidget {
                     key: ValueKey<bool>(selected),
                     selected ? data.activeIcon : data.icon,
                     size: 28,
-                    color: Colors.black,
+                    color: AppColors.text,
                   ),
                 ),
                 AnimatedSize(
@@ -68,7 +69,7 @@ class NavButton extends StatelessWidget {
                             child: Text(
                               data.label,
                               maxLines: 1,
-                              style: const TextStyle(color: Colors.black, fontSize: 17, fontWeight: FontWeight.w600),
+                              style: const TextStyle(color: AppColors.text, fontSize: 17, fontWeight: FontWeight.w600),
                             ),
                           ),
                         )

@@ -98,7 +98,7 @@ class _NavButton extends StatelessWidget {
           padding: selected ? const EdgeInsets.symmetric(horizontal: 12, vertical: 6) : EdgeInsets.zero,
           decoration: selected
               ? BoxDecoration(
-                  color: AppColors.surfaceRaised,
+                  color: AppColors.surfaceHigh,
                   border: Border.all(color: AppColors.border, width: 1.5),
                   borderRadius: BorderRadius.circular(20),
                 )

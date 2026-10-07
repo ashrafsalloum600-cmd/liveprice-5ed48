@@ -8,7 +8,7 @@ class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({super.key});
 
   static const Color primary = AppColors.accent;
-  static const Color bg = AppColors.background;
+  static const Color bg = AppColors.bg;
 
   @override
   State<UserProfileScreen> createState() => _UserProfileScreenState();
@@ -52,9 +52,15 @@ class _ProfileContentState extends State<ProfileContent> {
     setState(() => _isSigningIn = true);
     try {
       await _authService.signInWithGoogle();
-    } on AuthServiceException catch (error) {
+    } on FirebaseAuthException catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.message ?? 'تعذر تسجيل الدخول باستخدام Google')));
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))));
       }
     } finally {
       if (mounted) setState(() => _isSigningIn = false);
@@ -64,9 +70,14 @@ class _ProfileContentState extends State<ProfileContent> {
   Future<void> _signOut() async {
     try {
       await _authService.signOut();
-    } on AuthServiceException catch (error) {
+    } on FirebaseAuthException catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message ?? 'تعذر تسجيل الخروج')));
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))));
       }
     }
   }
@@ -76,7 +87,7 @@ class _ProfileContentState extends State<ProfileContent> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: StreamBuilder<User?>(
-        stream: _authService.authStateChanges,
+        stream: _authService.authState,
         builder: (context, snapshot) {
           final User? user = snapshot.data;
           return ListView(
@@ -147,7 +158,7 @@ class _ProfileHeader extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 44,
-                backgroundColor: AppColors.surfaceRaised,
+                backgroundColor: AppColors.surfaceHigh,
                 backgroundImage: user?.photoURL == null ? null : NetworkImage(user!.photoURL!),
                 child: user?.photoURL == null
                     ? const Icon(Icons.person_rounded, size: 48, color: UserProfileScreen.primary)
@@ -177,7 +188,7 @@ class _ProfileHeader extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             user?.email ?? '+963 999 999 999 · user@email.com',
-            style: const TextStyle(fontFamily: 'Cairo', fontSize: 13, color: AppColors.mutedText),
+            style: const TextStyle(fontFamily: 'Cairo', fontSize: 13, color: AppColors.textDim),
           ),
         ],
       ),
@@ -205,7 +216,7 @@ class _SectionCard extends StatelessWidget {
                 fontFamily: 'Cairo',
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: AppColors.mutedText,
+                color: AppColors.textDim,
               ),
             ),
           ),
@@ -259,7 +270,7 @@ class _ProfileItem extends StatelessWidget {
                 ),
               ),
             ),
-            if (color == null) const Icon(Icons.chevron_left_rounded, size: 22, color: AppColors.mutedText),
+            if (color == null) const Icon(Icons.chevron_left_rounded, size: 22, color: AppColors.textDim),
           ],
         ),
       ),

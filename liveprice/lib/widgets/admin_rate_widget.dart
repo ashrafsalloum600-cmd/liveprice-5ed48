@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:liveprice/services/pricing.dart';
+import 'package:liveprice/theme/app_colors.dart';
 
 class AdminRateWidget extends StatefulWidget {
   const AdminRateWidget({super.key});
@@ -56,7 +57,7 @@ class _AdminRateWidgetState extends State<AdminRateWidget> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(color: Colors.black.withAlpha(12), blurRadius: 14, offset: const Offset(0, 4))],
       ),
@@ -65,7 +66,7 @@ class _AdminRateWidgetState extends State<AdminRateWidget> {
         children: [
           const Text(
             'سعر الصرف',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.black),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.text),
           ),
           const SizedBox(height: 12),
           TextField(
@@ -79,7 +80,7 @@ class _AdminRateWidgetState extends State<AdminRateWidget> {
             child: ElevatedButton(
               onPressed: _saving ? null : _saveRate,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
+                backgroundColor: AppColors.accent,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),

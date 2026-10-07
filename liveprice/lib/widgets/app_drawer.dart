@@ -8,7 +8,7 @@ class AppDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Drawer(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.bg,
       width: 320,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.horizontal(right: Radius.circular(28))),
       child: SafeArea(child: ProfileContent()),

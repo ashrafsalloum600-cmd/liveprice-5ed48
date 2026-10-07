@@ -1,8 +1,11 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:liveprice/services/auth_service.dart';
+import 'package:liveprice/theme/app_colors.dart';
 import 'package:liveprice/services/firestore_service.dart';
 import 'package:liveprice/widgets/admin_notification_widget.dart';
 import 'package:liveprice/widgets/admin_rate_widget.dart';
@@ -15,17 +18,10 @@ class AdminPriceUploadScreen extends StatefulWidget {
 }
 
 class _AdminPriceUploadScreenState extends State<AdminPriceUploadScreen> {
-  static const String _pin = '8888';
-  bool _authorized = false;
+  final AuthService _authService = AuthService();
   bool _uploading = false;
   String? _selectedCurrency;
   bool _fileHasValidCurrency = false;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _askPin());
-  }
 
   bool get _canUpload => _selectedCurrency != null || _fileHasValidCurrency;
 
@@ -63,33 +59,6 @@ class _AdminPriceUploadScreenState extends State<AdminPriceUploadScreen> {
   }
 
   String _cleanPrice(String value) => value.replaceAll(RegExp(r'[\s,\$]'), '');
-
-  Future<void> _askPin() async {
-    final controller = TextEditingController();
-    final ok = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('رمز الدخول'),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          obscureText: true,
-          maxLength: 4,
-          decoration: const InputDecoration(hintText: '****'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(controller.text == _pin), child: const Text('دخول')),
-        ],
-      ),
-    );
-
-    if (ok == true) {
-      setState(() => _authorized = true);
-    } else if (mounted) {
-      Navigator.of(context).pop();
-    }
-  }
 
   Future<void> _pickAndUpload() async {
     final List<PlatformFile> files = await FilePicker.pickFiles(
@@ -203,22 +172,117 @@ class _AdminPriceUploadScreenState extends State<AdminPriceUploadScreen> {
     return rows;
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (!_authorized) {
-      return const Scaffold(backgroundColor: Color(0xFFE4E4E4), body: SizedBox.shrink());
+  Future<void> _signInWithGoogle() async {
+    try {
+      await _authService.signInWithGoogle();
+    } on FirebaseAuthException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.message ?? 'تعذر تسجيل الدخول باستخدام Google')));
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))));
+      }
     }
+  }
 
+  Widget _buildLoginScreen() {
     return Scaffold(
       backgroundColor: const Color(0xFFE4E4E4),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [BoxShadow(color: Colors.black.withAlpha(30), blurRadius: 18, offset: const Offset(0, 10))],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.lock_outline_rounded, size: 64, color: AppColors.text),
+                const SizedBox(height: 16),
+                const Text(
+                  'تسجيل الدخول للإدارة',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.text),
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: 220,
+                  child: ElevatedButton.icon(
+                    onPressed: _signInWithGoogle,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.accent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    ),
+                    icon: const Icon(Icons.g_mobiledata_rounded),
+                    label: const Text('تسجيل الدخول بحساب Google'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUnauthorizedScreen() {
+    return Scaffold(
+      backgroundColor: const Color(0xFFE4E4E4),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'هذا الحساب غير مصرّح له بالإدارة',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: AppColors.text),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: _authService.signOut,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
+                icon: const Icon(Icons.logout_rounded),
+                label: const Text('تسجيل الخروج'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAdminContent() {
+    return Scaffold(
+      backgroundColor: AppColors.bg,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFE4E4E4),
+        backgroundColor: AppColors.bg,
         elevation: 0,
-        title: const Text('رفع الأسعار', style: TextStyle(color: Colors.black)),
+        title: const Text('رفع الأسعار', style: TextStyle(color: AppColors.text)),
+        actions: [
+          TextButton.icon(
+            onPressed: _authService.signOut,
+            icon: const Icon(Icons.logout_rounded, color: AppColors.text),
+            label: const Text('تسجيل الخروج', style: TextStyle(color: AppColors.text)),
+          ),
+        ],
       ),
       body: Center(
         child: _uploading
-            ? const CircularProgressIndicator(color: Colors.black)
+            ? const CircularProgressIndicator(color: AppColors.text)
             : SingleChildScrollView(
                 padding: const EdgeInsets.all(24),
                 child: Column(
@@ -226,7 +290,7 @@ class _AdminPriceUploadScreenState extends State<AdminPriceUploadScreen> {
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+                      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16)),
                       child: DropdownButtonFormField<String>(
                         initialValue: _selectedCurrency,
                         decoration: const InputDecoration(labelText: 'عملة الملف', border: InputBorder.none),
@@ -247,7 +311,7 @@ class _AdminPriceUploadScreenState extends State<AdminPriceUploadScreen> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: AppColors.surface,
                             borderRadius: BorderRadius.circular(40),
                             boxShadow: [
                               BoxShadow(color: Colors.black.withAlpha(30), blurRadius: 24, offset: const Offset(0, 8)),
@@ -256,11 +320,11 @@ class _AdminPriceUploadScreenState extends State<AdminPriceUploadScreen> {
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.upload_file_rounded, color: Colors.black),
+                              Icon(Icons.upload_file_rounded, color: AppColors.text),
                               SizedBox(width: 10),
                               Text(
                                 'اختر ملف CSV / JSON',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black),
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.text),
                               ),
                             ],
                           ),
@@ -275,6 +339,26 @@ class _AdminPriceUploadScreenState extends State<AdminPriceUploadScreen> {
                 ),
               ),
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: _authService.authState,
+      builder: (context, snapshot) {
+        final user = snapshot.data;
+
+        if (user == null) {
+          return _buildLoginScreen();
+        }
+
+        if (!_authService.isAdmin(user)) {
+          return _buildUnauthorizedScreen();
+        }
+
+        return _buildAdminContent();
+      },
     );
   }
 }

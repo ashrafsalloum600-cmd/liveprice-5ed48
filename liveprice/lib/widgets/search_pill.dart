@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:liveprice/theme/app_colors.dart';
 
 class SearchPill extends StatelessWidget {
   final ValueChanged<String>? onChanged;
@@ -19,7 +20,7 @@ class SearchPill extends StatelessWidget {
     return Container(
       height: 56,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(40),
         boxShadow: [BoxShadow(color: Colors.black.withAlpha(30), blurRadius: 24, offset: const Offset(0, 8))],
       ),
@@ -39,16 +40,16 @@ class SearchPill extends StatelessWidget {
             onFieldSubmitted();
             onSearchSubmitted?.call(value);
           },
-          style: const TextStyle(fontSize: 17, color: Colors.black),
+          style: const TextStyle(fontSize: 17, color: AppColors.text),
           decoration: InputDecoration(
             border: InputBorder.none,
             hintText: 'ابحث عن مادة ...',
-            hintStyle: const TextStyle(color: Colors.black45, fontSize: 17),
-            prefixIcon: const Icon(Icons.search_rounded, color: Colors.black, size: 26),
+            hintStyle: const TextStyle(color: AppColors.textDim, fontSize: 17),
+            prefixIcon: const Icon(Icons.search_rounded, color: AppColors.text, size: 26),
             suffixIcon: controller.text.isEmpty
                 ? null
                 : IconButton(
-                    icon: const Icon(Icons.close_rounded, color: Colors.black54),
+                    icon: const Icon(Icons.close_rounded, color: AppColors.textDim),
                     onPressed: () {
                       controller.clear();
                       onChanged?.call('');
