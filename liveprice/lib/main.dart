@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 
+import 'theme/app_colors.dart';
 import 'currency_rates_screen.dart';
 import 'firebase_options.dart';
 import 'models/nav_item_data.dart';
@@ -32,7 +33,17 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       navigatorKey: navigatorKey,
-      theme: ThemeData(useMaterial3: true, colorSchemeSeed: const Color(0xFF1E88E5)),
+      theme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: AppColors.background,
+        colorScheme: const ColorScheme.dark(
+          primary: AppColors.text,
+          secondary: AppColors.accent,
+          surface: AppColors.surface,
+          onSurface: AppColors.text,
+        ),
+      ),
       home: const SplashScreen(next: DemoPage()),
     );
   }
@@ -82,7 +93,7 @@ class _DemoPageState extends State<DemoPage> {
     return Scaffold(
       key: _scaffoldKey,
       drawer: const AppDrawer(),
-      backgroundColor: const Color(0xFFE4E4E4),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         bottom: false,
         child: Column(

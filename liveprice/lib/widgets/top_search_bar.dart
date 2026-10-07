@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:liveprice/services/pricing.dart';
 import 'package:liveprice/widgets/rate_banner.dart';
+import 'package:liveprice/theme/app_colors.dart';
 
 class TopSearchBar extends StatefulWidget {
   final VoidCallback onMenu;
@@ -34,7 +35,7 @@ class _TopSearchBarState extends State<TopSearchBar> {
     return InkResponse(
       onTap: onTap,
       radius: 24,
-      child: SizedBox(width: 44, height: 44, child: Icon(icon, size: 26, color: Colors.black)),
+      child: SizedBox(width: 44, height: 44, child: Icon(icon, size: 26, color: AppColors.text)),
     );
   }
 
@@ -53,7 +54,7 @@ class _TopSearchBarState extends State<TopSearchBar> {
                 builder: (context, _) => Pricing.instance.usdToSyp == null
                     ? const Text(
                         'My Price',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.black),
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.text),
                       )
                     : const RateBanner(flat: true),
               ),
@@ -75,8 +76,8 @@ class _TopSearchBarState extends State<TopSearchBar> {
             width: 36,
             height: 36,
             margin: const EdgeInsets.only(left: 6),
-            decoration: const BoxDecoration(color: Color(0xFFE6E6E6), shape: BoxShape.circle),
-            child: const Icon(Icons.close_rounded, size: 20, color: Colors.black),
+            decoration: const BoxDecoration(color: AppColors.surfaceRaised, shape: BoxShape.circle),
+            child: const Icon(Icons.close_rounded, size: 20, color: AppColors.text),
           ),
         ),
         Expanded(
@@ -87,11 +88,11 @@ class _TopSearchBarState extends State<TopSearchBar> {
               autofocus: true,
               textAlign: TextAlign.center,
               onChanged: widget.onChanged,
-              style: const TextStyle(fontSize: 16, color: Colors.black),
+              style: const TextStyle(fontSize: 16, color: AppColors.text),
               decoration: const InputDecoration(
                 border: InputBorder.none,
                 hintText: 'ابحث باسم المادة أو رمزها',
-                hintStyle: TextStyle(color: Colors.black45),
+                hintStyle: TextStyle(color: AppColors.mutedText),
                 contentPadding: EdgeInsets.symmetric(horizontal: 8),
               ),
             ),
@@ -111,7 +112,8 @@ class _TopSearchBarState extends State<TopSearchBar> {
         height: 56,
         padding: const EdgeInsets.symmetric(horizontal: 6),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.background,
+          border: Border.all(color: AppColors.border),
           borderRadius: BorderRadius.circular(12),
           boxShadow: [BoxShadow(color: Colors.black.withAlpha(30), blurRadius: 24, offset: const Offset(0, 8))],
         ),

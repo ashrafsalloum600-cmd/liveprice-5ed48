@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/nav_item_data.dart';
+import '../theme/app_colors.dart';
 
 class PillNavBar extends StatelessWidget {
   final List<NavItemData> items;
@@ -97,8 +98,8 @@ class _NavButton extends StatelessWidget {
           padding: selected ? const EdgeInsets.symmetric(horizontal: 12, vertical: 6) : EdgeInsets.zero,
           decoration: selected
               ? BoxDecoration(
-                  color: const Color(0xFFE6E6E6),
-                  border: Border.all(color: const Color(0xFFCECECE), width: 1.5),
+                  color: AppColors.surfaceRaised,
+                  border: Border.all(color: AppColors.border, width: 1.5),
                   borderRadius: BorderRadius.circular(20),
                 )
               : null,
@@ -118,7 +119,7 @@ class _NavButton extends StatelessWidget {
                       selected ? data.activeIcon : data.icon,
                       key: ValueKey<bool>(selected),
                       size: 28,
-                      color: Colors.black,
+                      color: AppColors.text,
                     ),
                   ),
                   if (showBadge)
@@ -146,7 +147,7 @@ class _NavButton extends StatelessWidget {
                         child: Text(
                           data.label,
                           maxLines: 1,
-                          style: const TextStyle(color: Colors.black, fontSize: 17, fontWeight: FontWeight.w600),
+                          style: const TextStyle(color: AppColors.text, fontSize: 17, fontWeight: FontWeight.w600),
                         ),
                       )
                     : const SizedBox.shrink(),

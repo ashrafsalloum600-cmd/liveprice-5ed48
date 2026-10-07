@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:liveprice/services/notification_center.dart';
+import 'package:liveprice/theme/app_colors.dart';
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
@@ -12,7 +13,7 @@ class NotificationsScreen extends StatelessWidget {
         final items = NotificationCenter.instance.notifications;
         if (items.isEmpty) {
           return const Center(
-            child: Text('لا توجد تنبيهات حالياً', style: TextStyle(color: Colors.black45)),
+            child: Text('لا توجد تنبيهات حالياً', style: TextStyle(color: AppColors.mutedText)),
           );
         }
         return ListView.separated(
@@ -24,7 +25,7 @@ class NotificationsScreen extends StatelessWidget {
             return Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(18),
                 boxShadow: [BoxShadow(color: Colors.black.withAlpha(20), blurRadius: 16, offset: const Offset(0, 6))],
               ),
@@ -33,9 +34,9 @@ class NotificationsScreen extends StatelessWidget {
                   Container(
                     width: 40,
                     height: 40,
-                    decoration: BoxDecoration(color: const Color(0xFFE6E6E6), borderRadius: BorderRadius.circular(12)),
+                    decoration: BoxDecoration(color: AppColors.surfaceRaised, borderRadius: BorderRadius.circular(12)),
                     alignment: Alignment.center,
-                    child: const Icon(Icons.notifications_rounded, size: 20, color: Colors.black),
+                    child: const Icon(Icons.notifications_rounded, size: 20, color: AppColors.text),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -44,10 +45,10 @@ class NotificationsScreen extends StatelessWidget {
                       children: [
                         Text(
                           n.title,
-                          style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.black),
+                          style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.text),
                         ),
                         const SizedBox(height: 2),
-                        Text(n.body, style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                        Text(n.body, style: const TextStyle(fontSize: 13, color: AppColors.mutedText)),
                       ],
                     ),
                   ),

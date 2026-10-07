@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:liveprice/services/auth_service.dart';
 import 'package:liveprice/widgets/social_sign_in_buttons.dart';
+import 'package:liveprice/theme/app_colors.dart';
 
 class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({super.key});
 
-  static const Color primary = Color(0xFF1E88E5);
-  static const Color bg = Color(0xFFF8F9FA);
+  static const Color primary = AppColors.accent;
+  static const Color bg = AppColors.background;
 
   @override
   State<UserProfileScreen> createState() => _UserProfileScreenState();
@@ -26,7 +27,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           centerTitle: true,
           title: const Text(
             'الملف الشخصي',
-            style: TextStyle(fontFamily: 'Cairo', color: Colors.black, fontWeight: FontWeight.w700),
+            style: TextStyle(fontFamily: 'Cairo', color: AppColors.text, fontWeight: FontWeight.w700),
           ),
         ),
         body: const ProfileContent(),
@@ -136,7 +137,7 @@ class _ProfileHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(color: Colors.black.withAlpha(15), blurRadius: 16, offset: const Offset(0, 6))],
       ),
@@ -146,7 +147,7 @@ class _ProfileHeader extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 44,
-                backgroundColor: Color(0xFFE3F2FD),
+                backgroundColor: AppColors.surfaceRaised,
                 backgroundImage: user?.photoURL == null ? null : NetworkImage(user!.photoURL!),
                 child: user?.photoURL == null
                     ? const Icon(Icons.person_rounded, size: 48, color: UserProfileScreen.primary)
@@ -166,12 +167,17 @@ class _ProfileHeader extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             user?.displayName ?? 'اسم المستخدم',
-            style: const TextStyle(fontFamily: 'Cairo', fontSize: 18, fontWeight: FontWeight.w700, color: Colors.black),
+            style: const TextStyle(
+              fontFamily: 'Cairo',
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: AppColors.text,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             user?.email ?? '+963 999 999 999 · user@email.com',
-            style: const TextStyle(fontFamily: 'Cairo', fontSize: 13, color: Colors.black54),
+            style: const TextStyle(fontFamily: 'Cairo', fontSize: 13, color: AppColors.mutedText),
           ),
         ],
       ),
@@ -199,13 +205,13 @@ class _SectionCard extends StatelessWidget {
                 fontFamily: 'Cairo',
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: Colors.black45,
+                color: AppColors.mutedText,
               ),
             ),
           ),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [BoxShadow(color: Colors.black.withAlpha(12), blurRadius: 14, offset: const Offset(0, 4))],
           ),
@@ -213,8 +219,7 @@ class _SectionCard extends StatelessWidget {
             children: [
               for (int i = 0; i < items.length; i++) ...[
                 items[i],
-                if (i != items.length - 1)
-                  const Divider(height: 1, indent: 56, endIndent: 16, color: Color(0xFFEFEFEF)),
+                if (i != items.length - 1) const Divider(height: 1, indent: 56, endIndent: 16, color: AppColors.border),
               ],
             ],
           ),
@@ -250,11 +255,11 @@ class _ProfileItem extends StatelessWidget {
                   fontFamily: 'Cairo',
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: color ?? Colors.black87,
+                  color: color ?? AppColors.text,
                 ),
               ),
             ),
-            if (color == null) const Icon(Icons.chevron_left_rounded, size: 22, color: Colors.black26),
+            if (color == null) const Icon(Icons.chevron_left_rounded, size: 22, color: AppColors.mutedText),
           ],
         ),
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:liveprice/services/pricing.dart';
+import 'package:liveprice/theme/app_colors.dart';
 
 class RateBanner extends StatefulWidget {
   final bool flat;
@@ -11,7 +12,7 @@ class RateBanner extends StatefulWidget {
 }
 
 class _RateBannerState extends State<RateBanner> with SingleTickerProviderStateMixin {
-  static const _label = TextStyle(fontSize: 13, color: Colors.black54, fontWeight: FontWeight.w600);
+  static const _label = TextStyle(fontSize: 13, color: AppColors.mutedText, fontWeight: FontWeight.w600);
   static const _red = Color(0xFFFF3B30);
   static const _green = Color(0xFF34C759);
 
@@ -87,7 +88,7 @@ class _RateBannerState extends State<RateBanner> with SingleTickerProviderStateM
           decoration: widget.flat
               ? null
               : BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.surface,
                   borderRadius: BorderRadius.circular(40),
                   boxShadow: [BoxShadow(color: Colors.black.withAlpha(30), blurRadius: 24, offset: const Offset(0, 8))],
                 ),
@@ -105,7 +106,7 @@ class _RateBannerState extends State<RateBanner> with SingleTickerProviderStateM
                   Text(
                     _fmt(rate),
                     textDirection: TextDirection.ltr,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.black),
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.text),
                   ),
                   const SizedBox(width: 6),
                   const Text('ل.س', style: _label),

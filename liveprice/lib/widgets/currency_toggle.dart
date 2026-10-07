@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:liveprice/services/pricing.dart';
+import 'package:liveprice/theme/app_colors.dart';
 
 class CurrencyToggle extends StatelessWidget {
   const CurrencyToggle({super.key});
@@ -27,7 +28,7 @@ class CurrencyToggle extends StatelessWidget {
               height: _h,
               padding: const EdgeInsets.all(_pad),
               decoration: BoxDecoration(
-                color: usd ? const Color(0xFF34C759) : const Color(0xFFD1D1D6),
+                color: AppColors.surfaceRaised,
                 borderRadius: BorderRadius.circular(40),
                 boxShadow: [BoxShadow(color: Colors.black.withAlpha(30), blurRadius: 24, offset: const Offset(0, 8))],
               ),
@@ -41,7 +42,7 @@ class CurrencyToggle extends StatelessWidget {
                       width: _cell,
                       height: _h - _pad * 2,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: usd ? AppColors.accent : AppColors.surface,
                         borderRadius: BorderRadius.circular(40),
                         boxShadow: [
                           BoxShadow(color: Colors.black.withAlpha(40), blurRadius: 6, offset: const Offset(0, 2)),
@@ -68,7 +69,7 @@ class CurrencyToggle extends StatelessWidget {
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: selected ? Colors.black : (usd ? Colors.white : Colors.black54),
+            color: selected ? AppColors.background : AppColors.mutedText,
           ),
           child: Text(text),
         ),

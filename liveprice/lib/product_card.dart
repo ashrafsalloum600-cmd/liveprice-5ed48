@@ -3,6 +3,7 @@ import 'package:liveprice/models/product_model.dart';
 import 'package:liveprice/services/firestore_service.dart';
 import 'package:liveprice/services/pricing.dart';
 import 'package:liveprice/widgets/currency_toggle.dart';
+import 'package:liveprice/theme/app_colors.dart';
 
 class ProductsGrid extends StatefulWidget {
   final String searchQuery;
@@ -29,7 +30,7 @@ class _ProductsGridState extends State<ProductsGrid> {
       future: _future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: Colors.black));
+          return const Center(child: CircularProgressIndicator(color: AppColors.text));
         }
         if (snapshot.hasError) {
           return const Center(child: Text('حدث خطأ بتحميل المنتجات'));
@@ -92,7 +93,7 @@ class ProductCard extends StatelessWidget {
       textDirection: TextDirection.rtl,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [BoxShadow(color: Colors.black.withAlpha(24), blurRadius: 14, offset: const Offset(0, 6))],
         ),
@@ -105,16 +106,16 @@ class ProductCard extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   Container(
-                    color: const Color(0xFFF2F2F2),
+                    color: AppColors.surfaceRaised,
                     child: product.imageUrl.isEmpty
-                        ? const Icon(Icons.image_outlined, size: 32, color: Colors.black26)
+                        ? const Icon(Icons.image_outlined, size: 32, color: AppColors.mutedText)
                         : Image.network(
                             product.imageUrl,
                             fit: BoxFit.cover,
                             cacheWidth: 300,
                             gaplessPlayback: true,
                             errorBuilder: (_, _, _) =>
-                                const Icon(Icons.image_outlined, size: 32, color: Colors.black26),
+                                const Icon(Icons.image_outlined, size: 32, color: AppColors.mutedText),
                           ),
                   ),
                   Positioned(
@@ -126,7 +127,7 @@ class ProductCard extends StatelessWidget {
                       child: Container(
                         width: 28,
                         height: 28,
-                        decoration: BoxDecoration(color: Colors.white.withAlpha(230), shape: BoxShape.circle),
+                        decoration: BoxDecoration(color: AppColors.surface.withAlpha(230), shape: BoxShape.circle),
                         child: AnimatedSwitcher(
                           duration: const Duration(milliseconds: 250),
                           transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
@@ -134,7 +135,7 @@ class ProductCard extends StatelessWidget {
                             isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                             key: ValueKey(isFavorite),
                             size: 17,
-                            color: isFavorite ? Colors.redAccent : Colors.black45,
+                            color: isFavorite ? Colors.redAccent : AppColors.mutedText,
                           ),
                         ),
                       ),
@@ -159,7 +160,7 @@ class ProductCard extends StatelessWidget {
                         fontSize: 12,
                         height: 1.25,
                         fontWeight: FontWeight.w600,
-                        color: Colors.black,
+                        color: AppColors.text,
                       ),
                     ),
                   ),
@@ -171,7 +172,7 @@ class ProductCard extends StatelessWidget {
                       animation: Pricing.instance,
                       builder: (context, _) => Text(
                         Pricing.instance.format(product),
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.black),
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.text),
                       ),
                     ),
                   ),
@@ -181,7 +182,7 @@ class ProductCard extends StatelessWidget {
                       product.unit.isEmpty ? '' : '/ ${product.unit}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 10.5, color: Colors.black45),
+                      style: const TextStyle(fontSize: 10.5, color: AppColors.mutedText),
                     ),
                   ),
                 ],

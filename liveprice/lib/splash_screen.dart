@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
+import 'package:liveprice/theme/app_colors.dart';
 
 class SplashScreen extends StatelessWidget {
   final Widget next;
@@ -9,7 +10,7 @@ class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE4E4E4),
+      backgroundColor: AppColors.background,
       body: Center(
         child: Lottie.asset(
           'assets/images/welcompic/welcompic1.json',
