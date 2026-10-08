@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 
 import 'theme/app_colors.dart';
 import 'currency_rates_screen.dart';
@@ -19,6 +20,9 @@ import 'widgets/top_search_bar.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await FirebaseAppCheck.instance.activate(
+    webProvider: ReCaptchaV3Provider('6LdBlOUtAAAAAKbDa0P4Jod7WO1wSHnC0cZ550S6'),
+  );
   Pricing.instance.start();
   registerFcmBackgroundHandler();
   runApp(const MyApp());
