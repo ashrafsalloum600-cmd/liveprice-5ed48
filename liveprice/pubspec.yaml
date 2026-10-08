@@ -12,6 +12,7 @@ dependencies:
   lottie: ^3.6.1
   http: ^1.2.0
   firebase_core: ^3.0.0
+  firebase_app_check: ^0.3.2
   firebase_auth: ^5.7.0
   cloud_firestore: ^5.0.0
   file_picker: ^13.1.0
