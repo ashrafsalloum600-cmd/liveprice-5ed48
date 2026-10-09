@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 
@@ -19,6 +20,15 @@ import 'widgets/top_search_bar.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ),
+  );
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await FirebaseAppCheck.instance.activate(
     webProvider: ReCaptchaV3Provider('6LdBlOUtAAAAAKbDa0P4Jod7WO1wSHnC0cZ550S6'),
@@ -95,6 +105,7 @@ class _DemoPageState extends State<DemoPage> {
       drawer: const AppDrawer(),
       backgroundColor: AppColors.bg,
       body: SafeArea(
+        top: false,
         bottom: false,
         child: Column(
           children: <Widget>[
