@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 
@@ -15,6 +16,7 @@ import 'services/fcm_service.dart';
 import 'services/notification_center.dart';
 import 'services/pricing.dart';
 import 'widgets/app_drawer.dart';
+import 'widgets/flipping_header_bar.dart';
 import 'widgets/pill_nav_bar.dart';
 import 'widgets/top_search_bar.dart';
 
@@ -145,6 +147,20 @@ class _DemoPageState extends State<DemoPage> {
                   },
                 ),
               ),
+            ),
+            StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+              stream: FirebaseFirestore.instance.doc('settings/pricing').snapshots(),
+              builder: (context, snapshot) {
+                final exchangeRate = (snapshot.data?.data()?['usdToSyp'] as num?)?.toDouble() ?? 0.0;
+                final lastUpdatedText = snapshot.hasData ? 'تم التحديث الآن' : 'في انتظار التحديث';
+                final isOnline = snapshot.connectionState == ConnectionState.active && !snapshot.hasError;
+
+                return FlippingHeaderBar(
+                  exchangeRate: exchangeRate,
+                  lastUpdatedText: lastUpdatedText,
+                  isOnline: isOnline,
+                );
+              },
             ),
             Expanded(
               child: NotificationListener<ScrollNotification>(
