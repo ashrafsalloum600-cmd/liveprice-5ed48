@@ -10,8 +10,8 @@ class CurrencyToggle extends StatefulWidget {
 }
 
 class _CurrencyToggleState extends State<CurrencyToggle> {
-  static const double _cell = 64;
-  static const double _h = 40;
+  static const double _cell = 52;
+  static const double _h = 38;
   static const double _pad = 4;
   static const Duration _d = Duration(milliseconds: 380);
   static const Curve _spring = Cubic(0.2, 0.9, 0.25, 1.06);
@@ -50,7 +50,7 @@ class _CurrencyToggleState extends State<CurrencyToggle> {
             child: AnimatedContainer(
               duration: _d,
               curve: Curves.easeOutCubic,
-              width: _cell * 2 + _pad * 2,
+              width: _cell * 2 + _pad * 2 + 12,
               height: _h,
               padding: const EdgeInsets.all(_pad),
               decoration: BoxDecoration(
@@ -89,7 +89,7 @@ class _CurrencyToggleState extends State<CurrencyToggle> {
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 160),
                       curve: Curves.easeOut,
-                      width: _cell + (_pressed ? 10 : 0),
+                      width: _cell + (_pressed ? 8 : 0),
                       height: _h - _pad * 2,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(40),
@@ -105,7 +105,12 @@ class _CurrencyToggleState extends State<CurrencyToggle> {
                       ),
                     ),
                   ),
-                  Row(children: [_label('ل.س', sypSelected), _label('\$ دولار', usd)]),
+                  Row(
+                    children: [
+                      Expanded(child: _label('ل.س', sypSelected)),
+                      Expanded(child: _label('\$ دولار', usd)),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -117,14 +122,11 @@ class _CurrencyToggleState extends State<CurrencyToggle> {
 
   Widget _label(String text, bool selected) {
     final color = selected ? const Color(0xFF1B1F2A) : const Color(0xFF7C8598);
-    return SizedBox(
-      width: _cell,
-      child: Center(
-        child: AnimatedDefaultTextStyle(
-          duration: const Duration(milliseconds: 250),
-          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color),
-          child: Text(text),
-        ),
+    return Center(
+      child: AnimatedDefaultTextStyle(
+        duration: const Duration(milliseconds: 250),
+        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color),
+        child: Text(text, overflow: TextOverflow.ellipsis, maxLines: 1, textAlign: TextAlign.center),
       ),
     );
   }

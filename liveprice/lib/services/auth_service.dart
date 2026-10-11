@@ -28,7 +28,7 @@ class AuthService {
           error.code == 'web-context-undefined') {
         return;
       }
-      throw error;
+      rethrow;
     }
   }
 
