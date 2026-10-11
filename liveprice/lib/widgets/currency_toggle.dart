@@ -34,6 +34,8 @@ class _CurrencyToggleState extends State<CurrencyToggle> {
         animation: Pricing.instance,
         builder: (context, _) {
           final usd = Pricing.instance.displayCurrency == 'USD';
+          final sypSelected = !usd;
+
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTapDown: (_) => setState(() => _pressed = true),
@@ -103,7 +105,7 @@ class _CurrencyToggleState extends State<CurrencyToggle> {
                       ),
                     ),
                   ),
-                  Row(children: [_label('ل.س', !usd, usd), _label('\$ دولار', usd, usd)]),
+                  Row(children: [_label('ل.س', sypSelected), _label('\$ دولار', usd)]),
                 ],
               ),
             ),
@@ -113,8 +115,8 @@ class _CurrencyToggleState extends State<CurrencyToggle> {
     );
   }
 
-  Widget _label(String text, bool selected, bool usd) {
-    final color = selected ? const Color(0xFF1B1F2A) : (usd ? Colors.white : const Color(0xFF7C8598));
+  Widget _label(String text, bool selected) {
+    final color = selected ? const Color(0xFF1B1F2A) : const Color(0xFF7C8598);
     return SizedBox(
       width: _cell,
       child: Center(
