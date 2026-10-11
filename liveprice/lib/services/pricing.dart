@@ -9,6 +9,7 @@ class Pricing extends ChangeNotifier {
 
   double? usdToSyp;
   double? previousUsdToSyp;
+  DateTime? lastUpdatedAt;
   String displayCurrency = 'SYP'; // 'SYP' | 'USD'
   bool _started = false;
 
@@ -31,6 +32,7 @@ class Pricing extends ChangeNotifier {
         previousUsdToSyp = usdToSyp;
       }
       usdToSyp = incoming;
+      lastUpdatedAt = (doc.data()?['pricesUpdatedAt'] as Timestamp?)?.toDate();
       notifyListeners();
     });
   }

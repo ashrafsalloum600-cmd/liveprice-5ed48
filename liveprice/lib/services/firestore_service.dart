@@ -24,6 +24,7 @@ class FirestoreService {
 
     WriteBatch batch = _db.batch();
     int ops = 0;
+    int changed = 0;
 
     Future<void> flush() async {
       if (ops == 0) return;
@@ -49,6 +50,7 @@ class FirestoreService {
 
       batch.set(_db.collection(_collection).doc(id), fields, SetOptions(merge: true));
       ops++;
+      changed++;
 
       final priceChanged =
           old != null && oldPrice != null && newPrice != null && oldPrice != newPrice && oldCur == newCur;
@@ -67,5 +69,8 @@ class FirestoreService {
       if (ops >= 400) await flush();
     }
     await flush();
+    if (changed > 0) {
+      await _db.doc('settings/pricing').set({'pricesUpdatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+    }
   }
 }
