@@ -15,7 +15,9 @@ class AuthService {
       await _firebaseAuth.signInWithEmailAndPassword(email: email.trim(), password: password);
     } on FirebaseAuthException catch (error) {
       final message = switch (error.code) {
-        'invalid-credential' || 'wrong-password' || 'user-not-found' => 'البريد أو كلمة المرور غير صحيحة',
+        'invalid-credential' ||
+        'wrong-password' ||
+        'user-not-found' => 'تعذر تسجيل الدخول. تحقق من تسجيل بريد هذا الفرع في Firebase ومن صحة كلمة المرور',
         'user-disabled' => 'هذا الحساب معطّل',
         'too-many-requests' => 'محاولات كثيرة، حاول لاحقاً',
         'network-request-failed' => 'تحقق من اتصال الإنترنت',

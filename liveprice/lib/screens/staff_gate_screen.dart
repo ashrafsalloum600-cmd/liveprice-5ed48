@@ -21,7 +21,6 @@ class _StaffGateScreenState extends State<StaffGateScreen> {
   String? _branchId;
   bool _obscurePassword = true;
   bool _signingIn = false;
-  bool _sessionReady = false;
   bool _justSignedIn = false;
 
   @override
@@ -39,9 +38,7 @@ class _StaffGateScreenState extends State<StaffGateScreen> {
   }
 
   void _onSessionChanged() {
-    _sessionReady = true;
     unawaited(_logLoginIfReady());
-    if (mounted) setState(() {});
   }
 
   Future<void> _logLoginIfReady() async {
@@ -177,7 +174,7 @@ class _StaffGateScreenState extends State<StaffGateScreen> {
   );
 
   Widget _buildContent(StaffSession session) {
-    if (session.loading || !_sessionReady) {
+    if (session.loading || !session.initialized) {
       return const Scaffold(
         backgroundColor: AppColors.bg,
         body: Center(child: CircularProgressIndicator(color: AppColors.accent)),

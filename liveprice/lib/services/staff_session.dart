@@ -14,6 +14,7 @@ class StaffSession extends ChangeNotifier {
   User? user;
   StaffProfile? profile;
   bool loading = false;
+  bool initialized = false;
 
   StreamSubscription<User?>? _authSubscription;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _profileSubscription;
@@ -26,6 +27,7 @@ class StaffSession extends ChangeNotifier {
         user = null;
         profile = null;
         loading = false;
+        initialized = true;
         notifyListeners();
       },
     );
@@ -35,6 +37,7 @@ class StaffSession extends ChangeNotifier {
     await _profileSubscription?.cancel();
     _profileSubscription = null;
     user = currentUser;
+    initialized = true;
 
     if (currentUser == null) {
       profile = null;
