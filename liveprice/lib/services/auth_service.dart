@@ -4,11 +4,21 @@ import 'package:flutter/foundation.dart';
 class AuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
 
-  static const String branchesBaseEmail = 'liveprice.branches@gmail.com';
+  static const Map<String, String> _branchEmails = {
+    'b1': 'liveprice.branches+b1@gmail.com',
+    'b2': 'liveprice.branches+b2@gmail.com',
+    'b3': 'liveprice.branches+b3@gmail.com',
+  };
 
   Stream<User?> get authState => _firebaseAuth.authStateChanges();
 
-  String branchEmail(String branchId) => branchesBaseEmail.replaceFirst('@', '+$branchId@');
+  static String branchEmail(String branchId) {
+    final email = _branchEmails[branchId];
+    if (email == null) {
+      throw ArgumentError.value(branchId, 'branchId', 'معرّف الفرع غير معروف');
+    }
+    return email;
+  }
 
   Future<void> signInWithEmail(String email, String password) async {
     try {

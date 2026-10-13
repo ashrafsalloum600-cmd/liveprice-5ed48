@@ -116,7 +116,7 @@ class _StaffGateScreenState extends State<StaffGateScreen> {
                   onPressed: _signingIn || _branchId == null || password.isEmpty
                       ? null
                       : () =>
-                            _signIn(() => _authService.signInWithEmail(_authService.branchEmail(_branchId!), password)),
+                            _signIn(() => _authService.signInWithEmail(AuthService.branchEmail(_branchId!), password)),
                   style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent, foregroundColor: Colors.white),
                   child: _signingIn ? const CircularProgressIndicator() : const Text('دخول'),
                 ),
