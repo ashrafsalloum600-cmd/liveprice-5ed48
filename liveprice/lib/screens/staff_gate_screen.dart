@@ -89,7 +89,7 @@ class _StaffGateScreenState extends State<StaffGateScreen> {
                   alignment: WrapAlignment.center,
                   spacing: 8,
                   children: [
-                    for (final branch in const [('b1', 'فرع 1'), ('b2', 'فرع 2'), ('b3', 'فرع 3')])
+                    for (final branch in const [('b1', 'المركز الرئيسي'), ('b2', 'طرطوس'), ('b3', 'جديدة البحر')])
                       ChoiceChip(
                         label: Text(branch.$2),
                         selected: _branchId == branch.$1,
