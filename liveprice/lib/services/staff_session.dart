@@ -13,6 +13,7 @@ class StaffSession extends ChangeNotifier {
 
   User? user;
   StaffProfile? profile;
+  String? profileReadError;
   bool loading = false;
   bool initialized = false;
 
@@ -26,6 +27,7 @@ class StaffSession extends ChangeNotifier {
       onError: (Object _) {
         user = null;
         profile = null;
+        profileReadError = null;
         loading = false;
         initialized = true;
         notifyListeners();
@@ -41,12 +43,14 @@ class StaffSession extends ChangeNotifier {
 
     if (currentUser == null) {
       profile = null;
+      profileReadError = null;
       loading = false;
       notifyListeners();
       return;
     }
 
     profile = null;
+    profileReadError = null;
     loading = true;
     notifyListeners();
 
@@ -57,11 +61,13 @@ class StaffSession extends ChangeNotifier {
         .listen(
           (document) {
             profile = document.exists ? StaffProfile.fromDoc(document) : null;
+            profileReadError = null;
             loading = false;
             notifyListeners();
           },
-          onError: (Object _) {
+          onError: (Object error) {
             profile = null;
+            profileReadError = error is FirebaseException ? error.code : error.toString();
             loading = false;
             notifyListeners();
           },

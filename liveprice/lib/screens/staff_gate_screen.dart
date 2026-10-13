@@ -86,7 +86,7 @@ class _StaffGateScreenState extends State<StaffGateScreen> {
                   alignment: WrapAlignment.center,
                   spacing: 8,
                   children: [
-                    for (final branch in const [('b1', 'الشيخ سعد'), ('b2', 'طرطوس'), ('b3', 'جديدة البحر')])
+                    for (final branch in const [('b1', 'المركز الرئيسي'), ('b2', 'طرطوس'), ('b3', 'جديدة البحر')])
                       ChoiceChip(
                         label: Text(branch.$2),
                         selected: _branchId == branch.$1,
@@ -157,6 +157,35 @@ class _StaffGateScreenState extends State<StaffGateScreen> {
     ),
   );
 
+  Widget _buildProfileReadError(String errorCode) => Scaffold(
+    backgroundColor: AppColors.bg,
+    body: Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'تعذر قراءة بيانات الموظف من Firestore',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.text),
+            ),
+            const SizedBox(height: 8),
+            Text('رمز الخطأ: $errorCode', style: const TextStyle(color: AppColors.text)),
+            const SizedBox(height: 12),
+            const Text(
+              'تحقق من قواعد Firestore للسماح بقراءة staff/{UID} للمستخدم المسجل.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.text),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(onPressed: StaffSession.instance.signOut, child: const Text('تسجيل الخروج')),
+          ],
+        ),
+      ),
+    ),
+  );
+
   Widget _buildManager(StaffProfile profile) => Scaffold(
     backgroundColor: AppColors.bg,
     body: Center(
@@ -181,6 +210,7 @@ class _StaffGateScreenState extends State<StaffGateScreen> {
       );
     }
     if (session.user == null) return _buildLoginForm();
+    if (session.profileReadError != null) return _buildProfileReadError(session.profileReadError!);
 
     final profile = session.profile;
     if (profile == null || !profile.isValid) return _buildUnauthorized();
