@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:liveprice/services/auth_service.dart';
@@ -172,99 +171,6 @@ class _AdminPriceUploadScreenState extends State<AdminPriceUploadScreen> {
     return rows;
   }
 
-  Future<void> _signInWithGoogle() async {
-    try {
-      await _authService.signInWithGoogle();
-    } on FirebaseAuthException catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(error.message ?? 'تعذر تسجيل الدخول باستخدام Google')));
-      }
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))));
-      }
-    }
-  }
-
-  Widget _buildLoginScreen() {
-    return Scaffold(
-      backgroundColor: const Color(0xFFE4E4E4),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [BoxShadow(color: Colors.black.withAlpha(30), blurRadius: 18, offset: const Offset(0, 10))],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.lock_outline_rounded, size: 64, color: AppColors.text),
-                const SizedBox(height: 16),
-                const Text(
-                  'تسجيل الدخول للإدارة',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.text),
-                ),
-                const SizedBox(height: 18),
-                SizedBox(
-                  width: 220,
-                  child: ElevatedButton.icon(
-                    onPressed: _signInWithGoogle,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.accent,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                    ),
-                    icon: const Icon(Icons.g_mobiledata_rounded),
-                    label: const Text('تسجيل الدخول بحساب Google'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUnauthorizedScreen() {
-    return Scaffold(
-      backgroundColor: const Color(0xFFE4E4E4),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'هذا الحساب غير مصرّح له بالإدارة',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: AppColors.text),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                onPressed: _authService.signOut,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.accent,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                ),
-                icon: const Icon(Icons.logout_rounded),
-                label: const Text('تسجيل الخروج'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildAdminContent() {
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -344,21 +250,6 @@ class _AdminPriceUploadScreenState extends State<AdminPriceUploadScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: _authService.authState,
-      builder: (context, snapshot) {
-        final user = snapshot.data;
-
-        if (user == null) {
-          return _buildLoginScreen();
-        }
-
-        if (!_authService.isAdmin(user)) {
-          return _buildUnauthorizedScreen();
-        }
-
-        return _buildAdminContent();
-      },
-    );
+    return _buildAdminContent();
   }
 }

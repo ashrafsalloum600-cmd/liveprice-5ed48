@@ -9,7 +9,7 @@ import 'firebase_options.dart';
 import 'models/nav_item_data.dart';
 import 'splash_screen.dart';
 import 'product_card.dart';
-import 'screens/admin_price_upload_screen.dart';
+import 'screens/staff_gate_screen.dart';
 import 'screens/notifications_screen.dart';
 import 'services/fcm_service.dart';
 import 'services/notification_center.dart';
@@ -123,7 +123,7 @@ class _DemoPageState extends State<DemoPage> {
                     onMenu: () => _scaffoldKey.currentState?.openDrawer(),
                     onChanged: (query) => setState(() => _query = query),
                     onAdminLongPress: () =>
-                        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdminPriceUploadScreen())),
+                        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const StaffGateScreen())),
                   ),
                 ),
               ),

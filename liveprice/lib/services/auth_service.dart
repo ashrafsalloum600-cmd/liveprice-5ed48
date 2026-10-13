@@ -4,13 +4,26 @@ import 'package:flutter/foundation.dart';
 class AuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
 
-  static const List<String> adminEmails = ['ashrafsalloum600@gmail.com'];
+  static const String branchesBaseEmail = 'liveprice.branches@gmail.com';
 
   Stream<User?> get authState => _firebaseAuth.authStateChanges();
 
-  bool isAdmin(User? user) {
-    final email = user?.email?.trim().toLowerCase();
-    return email != null && adminEmails.contains(email);
+  String branchEmail(String branchId) => branchesBaseEmail.replaceFirst('@', '+$branchId@');
+
+  Future<void> signInWithEmail(String email, String password) async {
+    try {
+      await _firebaseAuth.signInWithEmailAndPassword(email: email.trim(), password: password);
+    } on FirebaseAuthException catch (error) {
+      final message = switch (error.code) {
+        'invalid-credential' || 'wrong-password' || 'user-not-found' => 'البريد أو كلمة المرور غير صحيحة',
+        'user-disabled' => 'هذا الحساب معطّل',
+        'too-many-requests' => 'محاولات كثيرة، حاول لاحقاً',
+        'network-request-failed' => 'تحقق من اتصال الإنترنت',
+        _ => null,
+      };
+      if (message != null) throw Exception(message);
+      rethrow;
+    }
   }
 
   Future<void> signInWithGoogle() async {
