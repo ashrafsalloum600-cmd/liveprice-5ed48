@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:liveprice/models/staff_profile.dart';
 import 'package:liveprice/screens/admin_price_upload_screen.dart';
+import 'package:liveprice/screens/inventory_upload_screen.dart';
 import 'package:liveprice/services/audit_service.dart';
 import 'package:liveprice/services/auth_service.dart';
 import 'package:liveprice/services/staff_session.dart';
@@ -201,7 +202,21 @@ class _StaffGateScreenState extends State<StaffGateScreen> {
         children: [
           Text('مرحباً ${profile.name} — ${profile.branchId}', style: const TextStyle(color: AppColors.text)),
           const SizedBox(height: 12),
-          const Text('ميزة رفع الجرد قريباً', style: TextStyle(color: AppColors.text)),
+          ElevatedButton.icon(
+            onPressed: () {
+              final branchNames = const {'b1': 'المركز الرئيسي', 'b2': 'طرطوس', 'b3': 'جديدة البحر'};
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => InventoryUploadScreen(
+                    branchId: profile.branchId,
+                    branchName: branchNames[profile.branchId] ?? profile.branchId,
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.upload_file),
+            label: const Text('رفع ملف الجرد'),
+          ),
           const SizedBox(height: 20),
           ElevatedButton(onPressed: StaffSession.instance.signOut, child: const Text('تسجيل الخروج')),
         ],
