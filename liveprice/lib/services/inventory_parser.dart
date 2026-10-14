@@ -11,8 +11,8 @@ String normalizeName(String value) {
       .replaceAll('ة', 'ه');
   const arabicDigits = '٠١٢٣٤٥٦٧٨٩';
   const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
-  for (var index = 0; index < 10; index++) {
-    normalized = normalized.replaceAll(arabicDigits[index], '$index').replaceAll(persianDigits[index], '$index');
+  for (var digit = 0; digit < 10; digit++) {
+    normalized = normalized.replaceAll(arabicDigits[digit], '$digit').replaceAll(persianDigits[digit], '$digit');
   }
   return normalized.toLowerCase().replaceAll(RegExp(r'\s*\*\s*'), '*').replaceAll(RegExp(r'\s+'), ' ').trim();
 }
@@ -49,44 +49,47 @@ class InventoryParseResult {
 
   static InventoryParseResult parse(Uint8List bytes, InventoryFormat format) {
     final sheet = XlsxReader.readSheet(bytes, format.sheetName);
-    final rows = <InventoryRow>[];
+    final parsedRows = <InventoryRow>[];
     final issues = <InventoryIssue>[];
-    final seen = <String>{};
-    final sortedNumbers = sheet.keys.toList()..sort();
-    for (final rowNumber in sortedNumbers) {
+    final seenKeys = <String>{};
+    final rowNumbers = sheet.keys.toList()..sort();
+
+    for (final rowNumber in rowNumbers) {
       if (rowNumber <= format.headerRows) continue;
       final cells = sheet[rowNumber]!;
+      final name = (cells[format.nameCol] ?? '').trim();
+      final unit = (cells[format.unitCol] ?? '').trim();
+      final rawQuantity = cells[format.qtyCol] ?? '';
       if (cells.values.every((value) => value.trim().isEmpty)) continue;
-      final name = (cells[format.nameCol.toUpperCase()] ?? '').trim();
-      final unit = (cells[format.unitCol.toUpperCase()] ?? '').trim();
       if (name.isEmpty) {
         issues.add(InventoryIssue(rowNumber: rowNumber, type: 'name', message: 'لا يوجد اسم للصنف'));
         continue;
       }
-      final rawQuantity = cells[format.qtyCol.toUpperCase()] ?? '';
+
       final quantityText = _normalizeDigits(rawQuantity).replaceAll(RegExp(r'[,\s]'), '');
       final quantity = num.tryParse(quantityText);
       if (quantity == null) {
         issues.add(InventoryIssue(rowNumber: rowNumber, type: 'qty', message: 'الكمية ليست رقماً صالحاً'));
         continue;
       }
+
       final key = '${normalizeName(name)}|$unit';
-      if (!seen.add(key)) {
+      if (!seenKeys.add(key)) {
         issues.add(InventoryIssue(rowNumber: rowNumber, type: 'duplicate', message: 'صنف مكرر، تم الاحتفاظ بأول ظهور'));
         continue;
       }
-      rows.add(InventoryRow(rowNumber: rowNumber, name: name, unit: unit, qty: quantity, key: key));
+      parsedRows.add(InventoryRow(rowNumber: rowNumber, name: name, unit: unit, qty: quantity, key: key));
     }
-    return InventoryParseResult(rows: rows, issues: issues);
+    return InventoryParseResult(rows: parsedRows, issues: issues);
   }
 
   static String _normalizeDigits(String value) {
     const arabicDigits = '٠١٢٣٤٥٦٧٨٩';
     const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
-    var result = value;
-    for (var index = 0; index < 10; index++) {
-      result = result.replaceAll(arabicDigits[index], '$index').replaceAll(persianDigits[index], '$index');
+    var normalized = value;
+    for (var digit = 0; digit < 10; digit++) {
+      normalized = normalized.replaceAll(arabicDigits[digit], '$digit').replaceAll(persianDigits[digit], '$digit');
     }
-    return result;
+    return normalized;
   }
 }
