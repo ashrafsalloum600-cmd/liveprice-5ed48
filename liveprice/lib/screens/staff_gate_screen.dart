@@ -143,13 +143,20 @@ class _StaffGateScreenState extends State<StaffGateScreen> {
     );
   }
 
-  Widget _buildUnauthorized() => Scaffold(
+  Widget _buildUnauthorized(StaffProfile? profile, String uid, String? email) => Scaffold(
     backgroundColor: AppColors.bg,
     body: Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           const Text('هذا الحساب غير مصرّح له بالإدارة', style: TextStyle(color: AppColors.text)),
+          SelectableText(
+            'السبب: ${profile == null ? 'لا يوجد مستند staff بهذا المعرّف' : profile.invalidReason}',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 12, color: AppColors.textDim),
+          ),
+          SelectableText('المعرّف: $uid', style: const TextStyle(fontSize: 12, color: AppColors.textDim)),
+          SelectableText('البريد: ${email ?? ''}', style: const TextStyle(fontSize: 12, color: AppColors.textDim)),
           const SizedBox(height: 16),
           ElevatedButton(onPressed: StaffSession.instance.signOut, child: const Text('تسجيل الخروج')),
         ],
@@ -213,10 +220,12 @@ class _StaffGateScreenState extends State<StaffGateScreen> {
     if (session.profileReadError != null) return _buildProfileReadError(session.profileReadError!);
 
     final profile = session.profile;
-    if (profile == null || !profile.isValid) return _buildUnauthorized();
+    if (profile == null || !profile.isValid) {
+      return _buildUnauthorized(profile, session.user!.uid, session.user!.email);
+    }
     if (profile.isOwner) return const AdminPriceUploadScreen();
     if (profile.isManager) return _buildManager(profile);
-    return _buildUnauthorized();
+    return _buildUnauthorized(profile, session.user!.uid, session.user!.email);
   }
 
   @override

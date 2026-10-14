@@ -29,4 +29,12 @@ class StaffProfile {
   bool get isOwner => role == 'owner';
   bool get isManager => role == 'manager';
   bool get isValid => active && (isOwner || (isManager && branchId.isNotEmpty));
+
+  String? get invalidReason {
+    if (isValid) return null;
+    if (!active) return 'الحساب غير فعّال (تأكد أن active من نوع boolean)';
+    if (!isOwner && !isManager) return 'الدور غير صحيح';
+    if (isManager && branchId.isEmpty) return 'branchId فارغ';
+    return null;
+  }
 }
