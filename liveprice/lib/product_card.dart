@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:liveprice/models/product_model.dart';
 import 'package:liveprice/services/firestore_service.dart';
+import 'package:liveprice/services/branch_inventory_store.dart';
 import 'package:liveprice/services/pricing.dart';
 import 'package:liveprice/theme/app_colors.dart';
 import 'package:liveprice/widgets/currency_toggle.dart';
@@ -19,8 +20,9 @@ class _ProductsGridState extends State<ProductsGrid> with SingleTickerProviderSt
   static const int _itemMs = 320;
   static const int _totalMs = _staggerCount * _staggerMs + _itemMs;
 
-  static List<ProductModel>? _cache;
-  late final Future<List<ProductModel>> _future;
+  static _CatalogData? _cache;
+  late Future<_CatalogData> _future;
+  bool _refreshing = false;
   late final AnimationController _stagger = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: _totalMs),
@@ -37,10 +39,34 @@ class _ProductsGridState extends State<ProductsGrid> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
-    _future = _cache != null ? Future.value(_cache!) : FirestoreService().getProducts().then((list) => _cache = list);
+    _future = _cache != null ? Future.value(_cache!) : _fetchCatalog();
     _future.then((_) {
       if (mounted) _stagger.forward();
     });
+  }
+
+  Future<_CatalogData> _fetchCatalog() async {
+    final results = await Future.wait<Object>([
+      FirestoreService().getPublicProducts(),
+      BranchInventoryStore().loadPublicStatuses(),
+    ]);
+    final data = _CatalogData(results[0] as List<ProductModel>, results[1] as Map<String, String>);
+    _cache = data;
+    return data;
+  }
+
+  Future<void> _refreshProducts() async {
+    setState(() => _refreshing = true);
+    try {
+      final data = await _fetchCatalog();
+      if (mounted) setState(() => _future = Future.value(data));
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تعذر تحديث المخزون: $error')));
+      }
+    } finally {
+      if (mounted) setState(() => _refreshing = false);
+    }
   }
 
   @override
@@ -51,7 +77,7 @@ class _ProductsGridState extends State<ProductsGrid> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<ProductModel>>(
+    return FutureBuilder<_CatalogData>(
       future: _future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -61,7 +87,8 @@ class _ProductsGridState extends State<ProductsGrid> with SingleTickerProviderSt
           return const Center(child: Text('حدث خطأ بتحميل المنتجات'));
         }
         final q = widget.searchQuery.trim().toLowerCase();
-        final all = snapshot.data ?? [];
+        final catalog = snapshot.data!;
+        final all = catalog.products;
         final products = q.isEmpty
             ? all
             : all.where((p) => p.name.toLowerCase().contains(q) || p.id.toLowerCase().contains(q)).toList();
@@ -70,10 +97,22 @@ class _ProductsGridState extends State<ProductsGrid> with SingleTickerProviderSt
         }
         return CustomScrollView(
           slivers: [
-            const SliverToBoxAdapter(
+            SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.fromLTRB(12, 4, 12, 12),
-                child: Align(alignment: Alignment.centerRight, child: CurrencyToggle()),
+                padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+                child: Row(
+                  children: [
+                    const CurrencyToggle(),
+                    const Spacer(),
+                    IconButton(
+                      tooltip: 'تحديث الأسعار والمخزون',
+                      onPressed: _refreshing ? null : _refreshProducts,
+                      icon: _refreshing
+                          ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.refresh),
+                    ),
+                  ],
+                ),
               ),
             ),
             SliverPadding(
@@ -90,6 +129,7 @@ class _ProductsGridState extends State<ProductsGrid> with SingleTickerProviderSt
                   final p = products[i];
                   Widget card = ProductCard(
                     product: p,
+                    stockStatus: catalog.stockStatuses[p.id] ?? 'incomplete',
                     isFavorite: _favoriteIds.contains(p.id),
                     onFavoriteToggle: () => setState(() {
                       if (!_favoriteIds.remove(p.id)) _favoriteIds.add(p.id);
@@ -116,12 +156,26 @@ class _ProductsGridState extends State<ProductsGrid> with SingleTickerProviderSt
   }
 }
 
+class _CatalogData {
+  const _CatalogData(this.products, this.stockStatuses);
+
+  final List<ProductModel> products;
+  final Map<String, String> stockStatuses;
+}
+
 class ProductCard extends StatefulWidget {
   final ProductModel product;
+  final String stockStatus;
   final bool isFavorite;
   final VoidCallback onFavoriteToggle;
 
-  const ProductCard({super.key, required this.product, required this.isFavorite, required this.onFavoriteToggle});
+  const ProductCard({
+    super.key,
+    required this.product,
+    this.stockStatus = 'incomplete',
+    required this.isFavorite,
+    required this.onFavoriteToggle,
+  });
 
   @override
   State<ProductCard> createState() => _ProductCardState();
@@ -133,6 +187,18 @@ class _ProductCardState extends State<ProductCard> {
   @override
   Widget build(BuildContext context) {
     final p = widget.product;
+    final stockLabel = switch (widget.stockStatus) {
+      'out' => 'نافد',
+      'limited' => 'محدود',
+      'available' => 'متوفر',
+      _ => 'مخزون غير مكتمل',
+    };
+    final stockColor = switch (widget.stockStatus) {
+      'out' => Colors.redAccent,
+      'limited' => Colors.amber,
+      'available' => Colors.greenAccent,
+      _ => AppColors.textDim,
+    };
     return MouseRegion(
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
@@ -185,6 +251,25 @@ class _ProductCardState extends State<ProductCard> {
                         top: 6,
                         left: 6,
                         child: _HeartButton(isFavorite: widget.isFavorite, onTap: widget.onFavoriteToggle),
+                      ),
+                      Positioned(
+                        bottom: 6,
+                        right: 6,
+                        child: Container(
+                          constraints: const BoxConstraints(maxWidth: 112, minHeight: 22),
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.bg.withAlpha(220),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: stockColor.withAlpha(150)),
+                          ),
+                          child: Text(
+                            stockLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: stockColor, fontSize: 10, fontWeight: FontWeight.w700),
+                          ),
+                        ),
                       ),
                     ],
                   ),

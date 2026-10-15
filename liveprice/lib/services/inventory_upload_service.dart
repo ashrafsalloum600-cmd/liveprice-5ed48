@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:liveprice/models/product_model.dart';
 import 'package:liveprice/services/inventory_parser.dart';
+import 'package:liveprice/services/branch_inventory_store.dart';
 import 'package:liveprice/services/staff_session.dart';
 
 class InventoryUploadItem {
@@ -10,6 +11,7 @@ class InventoryUploadItem {
     required this.previousQuantity,
     required this.newQuantity,
     required this.rowCount,
+    required this.publicStatus,
   });
 
   final String productId;
@@ -17,6 +19,7 @@ class InventoryUploadItem {
   final num? previousQuantity;
   final num newQuantity;
   final int rowCount;
+  final String publicStatus;
 }
 
 class InventoryUploadPreview {
@@ -48,9 +51,24 @@ class InventoryUploadService {
     required List<ProductModel> existingProducts,
   }) async {
     _quantityField(branchId);
-    final mapSnapshot = await _db.collection('branch_maps').doc(branchId).get();
+    final reads = await Future.wait([
+      _db.collection('branch_maps').doc(branchId).get(),
+      ...BranchInventoryStore.branchIds.map(
+        (id) => _db.collection('branch_inventory').doc(id).collection('items').get(),
+      ),
+    ]);
+    final mapSnapshot = reads.first as DocumentSnapshot<Map<String, dynamic>>;
     final mapData = mapSnapshot.data() ?? <String, dynamic>{};
     final mappings = _stringKeyedMap(mapData['m']);
+    final quantitiesByBranch = <String, Map<String, num>>{};
+    for (var index = 0; index < BranchInventoryStore.branchIds.length; index++) {
+      final branchId = BranchInventoryStore.branchIds[index];
+      final snapshot = reads[index + 1] as QuerySnapshot<Map<String, dynamic>>;
+      quantitiesByBranch[branchId] = {
+        for (final document in snapshot.docs)
+          if (document.data()['quantity'] is num) document.id: document.data()['quantity'] as num,
+      };
+    }
     final productsById = {for (final product in existingProducts) product.id: product};
     final totals = <String, num>{};
     final sourceRowsByProduct = <String, int>{};
@@ -93,11 +111,16 @@ class InventoryUploadService {
     final items = <InventoryUploadItem>[];
     for (final entry in totals.entries) {
       final product = productsById[entry.key]!;
-      final previousQuantity = product.branchQuantities[branchId];
+      final previousQuantity = quantitiesByBranch[branchId]?[product.id];
       if (previousQuantity != null && previousQuantity == entry.value) {
         unchangedCount++;
         continue;
       }
+      final projectedQuantities = <String, num>{
+        for (final id in BranchInventoryStore.branchIds)
+          if (quantitiesByBranch[id]!.containsKey(product.id)) id: quantitiesByBranch[id]![product.id]!,
+      };
+      projectedQuantities[branchId] = entry.value;
       items.add(
         InventoryUploadItem(
           productId: product.id,
@@ -105,6 +128,7 @@ class InventoryUploadService {
           previousQuantity: previousQuantity,
           newQuantity: entry.value,
           rowCount: sourceRowsByProduct[entry.key]!,
+          publicStatus: BranchInventoryStore.publicStatus(projectedQuantities),
         ),
       );
     }
@@ -121,22 +145,25 @@ class InventoryUploadService {
 
   Future<int> apply(InventoryUploadPreview preview) async {
     if (preview.items.isEmpty) return 0;
-    final quantityField = _quantityField(preview.branchId);
     final session = StaffSession.instance;
     final user = session.user;
     final profile = session.profile;
     final auditChanges = preview.items
         .map((item) => {'productId': item.productId, 'oldQty': item.previousQuantity, 'newQty': item.newQuantity})
         .toList(growable: false);
-    final productCollection = _db.collection('products');
+    final inventoryCollection = _db.collection('branch_inventory').doc(preview.branchId).collection('items');
 
-    for (var start = 0; start < preview.items.length; start += 400) {
-      final end = (start + 400 < preview.items.length) ? start + 400 : preview.items.length;
+    for (var start = 0; start < preview.items.length; start += 200) {
+      final end = (start + 200 < preview.items.length) ? start + 200 : preview.items.length;
       final batch = _db.batch();
       for (final item in preview.items.sublist(start, end)) {
-        batch.update(productCollection.doc(item.productId), {
-          quantityField: item.newQuantity,
-          '${quantityField}_at': FieldValue.serverTimestamp(),
+        batch.set(inventoryCollection.doc(item.productId), {
+          'quantity': item.newQuantity,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        batch.set(_db.collection('inventory_public').doc(item.productId), {
+          'status': item.publicStatus,
+          'updatedAt': FieldValue.serverTimestamp(),
         });
       }
       if (end == preview.items.length) {

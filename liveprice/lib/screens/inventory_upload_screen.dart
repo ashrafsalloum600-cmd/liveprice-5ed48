@@ -64,17 +64,16 @@ class _InventoryUploadScreenState extends State<InventoryUploadScreen> {
   void _acceptConfidentMatches(List<InventoryRow> rows) {
     final products = _products;
     if (products == null) return;
+    final exactProducts = InventoryMatcher.uniqueExactMatches(products);
     final accepted = <int, ProductModel>{};
     for (final row in rows) {
       if (_matches.containsKey(row.rowNumber)) continue;
-      final suggestions = InventoryMatcher.suggestionsFor(row, products);
-      if (suggestions.isEmpty || suggestions.first.score < 95) continue;
-      if (suggestions.length > 1 && suggestions.first.score - suggestions[1].score < 5) continue;
-      accepted[row.rowNumber] = suggestions.first.product;
+      final exactProduct = exactProducts[InventoryMatcher.normalizedName(row.name)];
+      if (exactProduct != null) accepted[row.rowNumber] = exactProduct;
     }
     setState(() => _matches.addAll(accepted));
     ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('تم قبول ${accepted.length} مطابقة مؤكدة للمراجعة')));
+        .showSnackBar(SnackBar(content: Text('تم قبول ${accepted.length} تطابق اسمي دقيق للمراجعة')));
   }
 
   Future<void> _chooseManually(InventoryRow row) async {
@@ -286,7 +285,7 @@ class _InventoryUploadScreenState extends State<InventoryUploadScreen> {
                               child: TextButton.icon(
                                 onPressed: _products == null ? null : () => _acceptConfidentMatches(rows),
                                 icon: const Icon(Icons.done_all),
-                                label: const Text('قبول المطابقات المؤكدة'),
+                                label: const Text('قبول التطابقات الاسمية الدقيقة'),
                               ),
                             ),
                             Text(

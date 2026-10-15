@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:liveprice/models/staff_profile.dart';
 import 'package:liveprice/screens/admin_price_upload_screen.dart';
 import 'package:liveprice/screens/inventory_upload_screen.dart';
+import 'package:liveprice/screens/inventory_details_screen.dart';
 import 'package:liveprice/services/audit_service.dart';
 import 'package:liveprice/services/auth_service.dart';
 import 'package:liveprice/services/staff_session.dart';
@@ -216,6 +217,13 @@ class _StaffGateScreenState extends State<StaffGateScreen> {
             },
             icon: const Icon(Icons.upload_file),
             label: const Text('رفع ملف الجرد'),
+          ),
+          const SizedBox(height: 10),
+          ElevatedButton.icon(
+            onPressed: () =>
+                Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const InventoryDetailsScreen())),
+            icon: const Icon(Icons.inventory_2_outlined),
+            label: const Text('تفاصيل مخزون الفروع'),
           ),
           const SizedBox(height: 20),
           ElevatedButton(onPressed: StaffSession.instance.signOut, child: const Text('تسجيل الخروج')),

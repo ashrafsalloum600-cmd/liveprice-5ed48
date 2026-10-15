@@ -9,13 +9,36 @@ class InventoryMatchSuggestion {
 }
 
 class InventoryMatcher {
+  static Map<String, ProductModel> uniqueExactMatches(List<ProductModel> products) {
+    final matches = <String, ProductModel>{};
+    final ambiguousKeys = <String>{};
+    for (final product in products) {
+      final key = normalizedName(product.name);
+      if (key.isEmpty) continue;
+      if (matches.containsKey(key)) {
+        matches.remove(key);
+        ambiguousKeys.add(key);
+      } else if (!ambiguousKeys.contains(key)) {
+        matches[key] = product;
+      }
+    }
+    return matches;
+  }
+
+  static String normalizedName(String value) {
+    final normalized = normalizeName(value).toLowerCase().replaceAll(RegExp(r'[^a-z0-9\u0600-\u06FF]+'), ' ').trim();
+    final tokens = normalized.isEmpty ? <String>[] : normalized.split(RegExp(r'\s+'));
+    tokens.sort();
+    return tokens.join(' ');
+  }
+
   static List<InventoryMatchSuggestion> suggestionsFor(InventoryRow row, List<ProductModel> products, {int limit = 3}) {
-    final sourceName = _normalize(row.name);
+    final sourceName = normalizedName(row.name);
     if (sourceName.isEmpty) return const [];
 
     final suggestions = <InventoryMatchSuggestion>[];
     for (final product in products) {
-      final productName = _normalize(product.name);
+      final productName = normalizedName(product.name);
       if (productName.isEmpty) continue;
       suggestions.add(InventoryMatchSuggestion(product: product, score: _score(sourceName, productName)));
     }
@@ -24,13 +47,6 @@ class InventoryMatcher {
       return byScore != 0 ? byScore : left.product.name.compareTo(right.product.name);
     });
     return suggestions.take(limit).toList(growable: false);
-  }
-
-  static String _normalize(String value) {
-    final normalized = normalizeName(value).toLowerCase().replaceAll(RegExp(r'[^a-z0-9\u0600-\u06FF]+'), ' ').trim();
-    final tokens = normalized.isEmpty ? <String>[] : normalized.split(RegExp(r'\s+'));
-    tokens.sort();
-    return tokens.join(' ');
   }
 
   static int _score(String left, String right) {

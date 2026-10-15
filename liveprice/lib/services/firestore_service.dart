@@ -18,6 +18,11 @@ class FirestoreService {
     return snapshot.docs.map(ProductModel.fromFirestore).toList();
   }
 
+  Future<List<ProductModel>> getPublicProducts() async {
+    final snapshot = await _db.collection('products_public').get(const GetOptions(source: Source.serverAndCache));
+    return snapshot.docs.map(ProductModel.fromFirestore).toList();
+  }
+
   Future<void> uploadProductsBatch(List<Map<String, dynamic>> productsData) async {
     final existing = await _db.collection(_collection).get(const GetOptions(source: Source.server));
     final current = {for (final d in existing.docs) d.id: d.data()};
@@ -38,6 +43,15 @@ class FirestoreService {
       final fields = Map<String, dynamic>.from(data)..remove('id');
       final old = current[id];
 
+      if (old == null) {
+        fields.putIfAbsent('name', () => '');
+        fields.putIfAbsent('price', () => 0.0);
+        fields.putIfAbsent('currency', () => 'SYP');
+        fields.putIfAbsent('unit', () => '');
+        fields.putIfAbsent('category', () => '');
+        fields.putIfAbsent('imageUrl', () => '');
+      }
+
       final newPrice = (fields['price'] as num?)?.toDouble();
       final oldPrice = (old?['price'] as num?)?.toDouble();
       final oldCur = old?['currency'] as String? ?? 'SYP';
@@ -51,6 +65,21 @@ class FirestoreService {
       batch.set(_db.collection(_collection).doc(id), fields, SetOptions(merge: true));
       ops++;
       changed++;
+
+      final publicFields = <String, dynamic>{
+        for (final field in ['name', 'price', 'currency', 'unit', 'category', 'imageUrl'])
+          if (fields.containsKey(field))
+            field: fields[field]
+          else if (old != null && old.containsKey(field))
+            field: old[field],
+      };
+      if (old == null) {
+        batch.set(_db.collection('products_public').doc(id), publicFields);
+        ops++;
+      } else if (publicFields.isNotEmpty) {
+        batch.set(_db.collection('products_public').doc(id), publicFields, SetOptions(merge: true));
+        ops++;
+      }
 
       final priceChanged =
           old != null && oldPrice != null && newPrice != null && oldPrice != newPrice && oldCur == newCur;

@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:liveprice/services/auth_service.dart';
 import 'package:liveprice/theme/app_colors.dart';
 import 'package:liveprice/services/firestore_service.dart';
+import 'package:liveprice/screens/inventory_details_screen.dart';
+import 'package:liveprice/screens/owner_inventory_tools_screen.dart';
 import 'package:liveprice/widgets/admin_notification_widget.dart';
 import 'package:liveprice/widgets/admin_rate_widget.dart';
 
@@ -179,6 +181,18 @@ class _AdminPriceUploadScreenState extends State<AdminPriceUploadScreen> {
         elevation: 0,
         title: const Text('رفع الأسعار', style: TextStyle(color: AppColors.text)),
         actions: [
+          IconButton(
+            tooltip: 'تفاصيل مخزون الفروع',
+            onPressed: () =>
+                Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const InventoryDetailsScreen())),
+            icon: const Icon(Icons.inventory_2_outlined, color: AppColors.text),
+          ),
+          IconButton(
+            tooltip: 'أدوات المالك',
+            onPressed: () =>
+                Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const OwnerInventoryToolsScreen())),
+            icon: const Icon(Icons.admin_panel_settings_outlined, color: AppColors.text),
+          ),
           TextButton.icon(
             onPressed: _authService.signOut,
             icon: const Icon(Icons.logout_rounded, color: AppColors.text),

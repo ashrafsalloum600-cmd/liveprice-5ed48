@@ -1,0 +1,264 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Data model assumptions:
+    // staff/{uid}: role, branchId, name, active. Bootstrap the owner manually.
+    // products/{id}: private source of truth for catalog; no inventory fields after migration.
+    // products_public/{id}: only name, price, currency, unit, category, imageUrl.
+    // branch_maps/{branch}: m maps source branch codes to {p: productId, f: factor, n: sourceName}.
+    // branch_inventory/{branch}/items/{productId}: quantity, updatedAt.
+    // inventory_public/{productId}: status only (incomplete|out|limited|available), updatedAt.
+    // inventory_meta/{branch}: lastUploadAt, by, rows.
+    // audit_logs/{id}: append-only event and actor metadata.
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function staffPath(uid) {
+      return /databases/$(database)/documents/staff/$(uid);
+    }
+
+    function hasStaffProfile() {
+      return signedIn() && exists(staffPath(request.auth.uid));
+    }
+
+    function staffData() {
+      return get(staffPath(request.auth.uid)).data;
+    }
+
+    function activeStaff() {
+      return hasStaffProfile() && staffData().active == true;
+    }
+
+    function isOwner() {
+      return activeStaff() && staffData().role == 'owner';
+    }
+
+    function validBranch(branchId) {
+      return branchId in ['b1', 'b2', 'b3'];
+    }
+
+    function isManager() {
+      return activeStaff() && staffData().role == 'manager' && validBranch(staffData().branchId);
+    }
+
+    function isManagerFor(branchId) {
+      return isManager() && staffData().branchId == branchId;
+    }
+
+    function canManageBranch(branchId) {
+      return isOwner() || isManagerFor(branchId);
+    }
+
+    function validProduct(data) {
+      return data.keys().hasOnly([
+          'name', 'price', 'currency', 'unit', 'category', 'imageUrl',
+          'q_b1', 'q_b2', 'q_b3', 'q_b1_at', 'q_b2_at', 'q_b3_at'
+        ]) &&
+        data.keys().hasAll(['name', 'price', 'currency', 'unit', 'category', 'imageUrl']) &&
+        data.name is string && data.name.size() <= 240 &&
+        data.price is number && data.price >= 0 && data.price <= 1000000000000 &&
+        data.currency in ['SYP', 'USD'] &&
+        data.unit is string && data.unit.size() <= 80 &&
+        data.category is string && data.category.size() <= 120 &&
+        data.imageUrl is string && data.imageUrl.size() <= 2048 &&
+        (!('q_b1' in data) || data.q_b1 is number) &&
+        (!('q_b2' in data) || data.q_b2 is number) &&
+        (!('q_b3' in data) || data.q_b3 is number) &&
+        (!('q_b1_at' in data) || data.q_b1_at is timestamp) &&
+        (!('q_b2_at' in data) || data.q_b2_at is timestamp) &&
+        (!('q_b3_at' in data) || data.q_b3_at is timestamp);
+    }
+
+    function validPublicProduct(data) {
+      return data.keys().hasOnly(['name', 'price', 'currency', 'unit', 'category', 'imageUrl']) &&
+        data.keys().hasAll(['name', 'price', 'currency', 'unit', 'category', 'imageUrl']) &&
+        data.name is string && data.name.size() <= 240 &&
+        data.price is number && data.price >= 0 && data.price <= 1000000000000 &&
+        data.currency in ['SYP', 'USD'] &&
+        data.unit is string && data.unit.size() <= 80 &&
+        data.category is string && data.category.size() <= 120 &&
+        data.imageUrl is string && data.imageUrl.size() <= 2048;
+    }
+
+    function validInventoryItem(data) {
+      return data.keys().hasOnly(['quantity', 'updatedAt']) &&
+        data.keys().hasAll(['quantity', 'updatedAt']) &&
+        data.quantity is number && data.quantity >= -1000000000 && data.quantity <= 1000000000 &&
+        data.updatedAt is timestamp;
+    }
+
+    function validInventoryPublic(data) {
+      return data.keys().hasOnly(['status', 'updatedAt']) &&
+        data.keys().hasAll(['status', 'updatedAt']) &&
+        data.status in ['incomplete', 'out', 'limited', 'available'] &&
+        data.updatedAt == request.time;
+    }
+
+    function quantityAfter(branchId, productId) {
+      let itemPath = /databases/$(database)/documents/branch_inventory/$(branchId)/items/$(productId);
+      return existsAfter(itemPath) ? getAfter(itemPath).data.quantity : null;
+    }
+
+    function expectedPublicStatus(productId) {
+      let b1 = quantityAfter('b1', productId);
+      let b2 = quantityAfter('b2', productId);
+      let b3 = quantityAfter('b3', productId);
+      return b1 == null || b2 == null || b3 == null
+        ? 'incomplete'
+        : (b1 + b2 + b3 <= 0 ? 'out' : (b1 + b2 + b3 <= 5 ? 'limited' : 'available'));
+    }
+
+    function validInventoryPublicForProduct(productId, data) {
+      return validInventoryPublic(data) && data.status == expectedPublicStatus(productId);
+    }
+
+    function validBranchMap(data) {
+      return data.keys().hasOnly(['m', 'pending']) &&
+        data.keys().hasAll(['m']) &&
+        data.m is map && data.m.keys().size() <= 3000 &&
+        (!('pending' in data) || (data.pending is map && data.pending.keys().size() <= 3000));
+    }
+
+    function validInventoryMeta(data, branchId) {
+      return data.keys().hasOnly(['lastUploadAt', 'by', 'rows']) &&
+        data.keys().hasAll(['lastUploadAt', 'by', 'rows']) &&
+        data.lastUploadAt == request.time &&
+        data.by == request.auth.uid &&
+        data.rows is int && data.rows >= 0 && data.rows <= 2000 &&
+        canManageBranch(branchId);
+    }
+
+    function validAuditCreate(data) {
+      return data.keys().hasOnly(['type', 'uid', 'email', 'name', 'role', 'branchId', 'at', 'details']) &&
+        data.keys().hasAll(['type', 'uid', 'email', 'name', 'role', 'branchId', 'at']) &&
+        data.type is string && data.type.size() > 0 && data.type.size() <= 64 &&
+        data.uid == request.auth.uid &&
+        data.email == request.auth.token.email &&
+        data.name is string && data.name.size() <= 120 &&
+        data.role == staffData().role &&
+        data.at == request.time &&
+        (data.branchId == staffData().branchId ||
+          (isOwner() && data.branchId == '' && data.type == 'inventory_storage_migration')) &&
+        (!('details' in data) || (data.details is map && data.details.keys().size() <= 20));
+    }
+
+    match /staff/{uid} {
+      allow get: if signedIn() && (request.auth.uid == uid || isOwner());
+      allow list: if isOwner();
+      allow create, update, delete: if false;
+    }
+
+    match /products/{productId} {
+      allow get, list: if isOwner() || isManager();
+      allow create: if isOwner() && validProduct(request.resource.data);
+      allow update: if isOwner() && validProduct(request.resource.data);
+      allow delete: if isOwner();
+    }
+
+    match /products_public/{productId} {
+      allow get, list: if true;
+      allow create, update: if isOwner() && validPublicProduct(request.resource.data);
+      allow delete: if isOwner();
+    }
+
+    match /branch_maps/{branchId} {
+      allow get: if canManageBranch(branchId);
+      allow list: if isOwner();
+      allow create: if canManageBranch(branchId) && validBranchMap(request.resource.data);
+      allow update: if canManageBranch(branchId) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['m']) &&
+        validBranchMap(request.resource.data);
+      allow delete: if isOwner();
+    }
+
+    match /branch_inventory/{branchId}/items/{productId} {
+      allow get, list: if isOwner() || isManager();
+      allow create: if canManageBranch(branchId) && validInventoryItem(request.resource.data) &&
+        (isOwner() || request.resource.data.updatedAt == request.time);
+      allow update: if canManageBranch(branchId) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['quantity', 'updatedAt']) &&
+        validInventoryItem(request.resource.data) &&
+        (isOwner() || request.resource.data.updatedAt == request.time);
+      allow delete: if isOwner();
+    }
+
+    match /inventory_public/{productId} {
+      allow get, list: if true;
+      allow create, update: if (isOwner() || isManager()) &&
+        validInventoryPublicForProduct(productId, request.resource.data);
+      allow delete: if isOwner();
+    }
+
+    match /inventory_meta/{branchId} {
+      allow get, list: if isOwner() || isManager();
+      allow create: if validInventoryMeta(request.resource.data, branchId);
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastUploadAt', 'by', 'rows']) &&
+        validInventoryMeta(request.resource.data, branchId);
+      allow delete: if isOwner();
+    }
+
+    match /audit_logs/{eventId} {
+      allow get, list: if isOwner();
+      allow create: if activeStaff() && validAuditCreate(request.resource.data);
+      allow update, delete: if false;
+    }
+
+    match /price_changes/{changeId} {
+      allow get, list: if true;
+      allow create: if isOwner() &&
+        request.resource.data.keys().hasOnly(['productId', 'name', 'oldPrice', 'newPrice', 'currency', 'at']) &&
+        request.resource.data.keys().hasAll(['productId', 'name', 'oldPrice', 'newPrice', 'currency', 'at']) &&
+        request.resource.data.productId is string && request.resource.data.productId.size() <= 200 &&
+        request.resource.data.name is string && request.resource.data.name.size() <= 240 &&
+        request.resource.data.oldPrice is number && request.resource.data.newPrice is number &&
+        request.resource.data.currency in ['SYP', 'USD'] && request.resource.data.at == request.time;
+      allow update, delete: if false;
+    }
+
+    match /settings/pricing {
+      allow get: if true;
+      allow list: if false;
+      allow create, update: if isOwner() &&
+        request.resource.data.keys().hasOnly(['usdToSyp', 'updatedAt', 'previousUsdToSyp', 'pricesUpdatedAt']) &&
+        (!('usdToSyp' in request.resource.data) ||
+          (request.resource.data.usdToSyp is number && request.resource.data.usdToSyp > 0)) &&
+        (!('previousUsdToSyp' in request.resource.data) ||
+          (request.resource.data.previousUsdToSyp is number && request.resource.data.previousUsdToSyp > 0)) &&
+        (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt == request.time) &&
+        (!('pricesUpdatedAt' in request.resource.data) || request.resource.data.pricesUpdatedAt == request.time);
+      allow delete: if false;
+    }
+
+    match /settings/inventory_format {
+      allow get: if isOwner() || isManager();
+      allow list: if false;
+      allow create, update: if isOwner() &&
+        request.resource.data.keys().hasOnly(['nameHeader', 'unitHeader', 'qtyHeader']) &&
+        (!('nameHeader' in request.resource.data) ||
+          (request.resource.data.nameHeader is string && request.resource.data.nameHeader.size() <= 80)) &&
+        (!('unitHeader' in request.resource.data) ||
+          (request.resource.data.unitHeader is string && request.resource.data.unitHeader.size() <= 80)) &&
+        (!('qtyHeader' in request.resource.data) ||
+          (request.resource.data.qtyHeader is string && request.resource.data.qtyHeader.size() <= 80));
+      allow delete: if false;
+    }
+
+    match /notifications_queue/{notificationId} {
+      allow create: if isOwner() &&
+        request.resource.data.keys().hasOnly(['target', 'topic', 'message', 'createdAt']) &&
+        request.resource.data.keys().hasAll(['target', 'topic', 'message', 'createdAt']) &&
+        request.resource.data.target == 'topic' &&
+        request.resource.data.topic is string && request.resource.data.topic.size() <= 100 &&
+        request.resource.data.message is map && request.resource.data.message.keys().hasOnly(['notification', 'webpush', 'data']) &&
+        request.resource.data.createdAt == request.time;
+      allow get, list, update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

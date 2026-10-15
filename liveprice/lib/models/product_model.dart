@@ -8,7 +8,6 @@ class ProductModel {
   final String category;
   final String imageUrl;
   final String currency;
-  final Map<String, num?> branchQuantities;
 
   const ProductModel({
     required this.id,
@@ -18,19 +17,12 @@ class ProductModel {
     required this.category,
     required this.imageUrl,
     required this.currency,
-    this.branchQuantities = const {},
   });
 
   factory ProductModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
     final rawCurrency = (data['currency'] as String?)?.trim().toUpperCase();
     final currency = rawCurrency == 'USD' || rawCurrency == 'SYP' ? rawCurrency! : 'SYP';
-    final branchQuantities = <String, num?>{};
-    for (final branchId in const ['b1', 'b2', 'b3']) {
-      final quantity = data['q_$branchId'];
-      if (quantity is num) branchQuantities[branchId] = quantity;
-    }
-
     return ProductModel(
       id: doc.id,
       name: data['name'] as String? ?? '',
@@ -39,7 +31,6 @@ class ProductModel {
       category: data['category'] as String? ?? '',
       imageUrl: data['imageUrl'] as String? ?? '',
       currency: currency,
-      branchQuantities: branchQuantities,
     );
   }
 
