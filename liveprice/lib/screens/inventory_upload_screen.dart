@@ -23,7 +23,7 @@ class _InventoryUploadScreenState extends State<InventoryUploadScreen> {
   Future<void> _pickInventory() async {
     setState(() => _loading = true);
     try {
-      final files = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: const ['xlsx']);
+      final files = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: const ['csv']);
       if (files.isEmpty) return;
       final file = files.first;
       final Uint8List bytes = await file.readAsBytes();
@@ -73,7 +73,7 @@ class _InventoryUploadScreenState extends State<InventoryUploadScreen> {
                         icon: _loading
                             ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2))
                             : const Icon(Icons.upload_file),
-                        label: const Text('اختيار ملف الجرد'),
+                        label: const Text('اختيار ملف الجرد (CSV)'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.accent,
                           foregroundColor: Colors.white,
