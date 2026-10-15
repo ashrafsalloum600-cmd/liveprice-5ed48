@@ -23,14 +23,10 @@ class _InventoryUploadScreenState extends State<InventoryUploadScreen> {
   Future<void> _pickInventory() async {
     setState(() => _loading = true);
     try {
-      final selection = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: const ['xlsx'],
-        withData: true,
-      );
-      if (selection == null || selection.files.isEmpty) return;
-      final Uint8List? bytes = selection.files.single.bytes;
-      if (bytes == null) throw Exception('تعذر قراءة محتوى الملف');
+      final files = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: const ['xlsx']);
+      if (files.isEmpty) return;
+      final file = files.first;
+      final Uint8List bytes = await file.readAsBytes();
       final format = await InventoryFormat.load();
       final result = InventoryParseResult.parse(bytes, format);
       if (mounted) setState(() => _result = result);

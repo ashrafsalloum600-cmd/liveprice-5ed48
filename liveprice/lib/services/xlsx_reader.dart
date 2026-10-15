@@ -17,8 +17,7 @@ class XlsxReader {
     String? readText(String path) {
       final content = files[path]?.content;
       if (content == null) return null;
-      if (content is List<int>) return utf8.decode(content, allowMalformed: true);
-      return content.toString();
+      return utf8.decode(content as List<int>, allowMalformed: true);
     }
 
     final workbookText = readText('xl/workbook.xml');
