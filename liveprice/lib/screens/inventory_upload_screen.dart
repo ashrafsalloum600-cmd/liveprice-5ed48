@@ -433,6 +433,7 @@ class _InventoryPreviewDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final skippedCount = preview.unmappedCount + preview.missingProductCount + preview.invalidMappingCount;
+    final zeroCount = preview.items.where((item) => item.newQuantity == 0).length;
     return AlertDialog(
       title: const Text('معاينة تحديث الجرد'),
       content: SizedBox(
@@ -442,6 +443,7 @@ class _InventoryPreviewDialog extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('منتجات موجودة ستتغير: ${preview.items.length}'),
+            Text('منها ستصبح كميتها صفراً: $zeroCount'),
             Text('كمياتها لم تتغير: ${preview.unchangedCount}'),
             Text('صفوف مستبعدة دون رفع: $skippedCount'),
             const SizedBox(height: 8),
@@ -459,13 +461,21 @@ class _InventoryPreviewDialog extends StatelessWidget {
                       itemBuilder: (context, index) {
                         final item = preview.items[index];
                         final previous = item.previousQuantity?.toString() ?? 'غير مسجلة';
+                        final change = item.previousQuantity == null
+                            ? 'لا توجد كمية سابقة للمقارنة'
+                            : item.newQuantity > item.previousQuantity!
+                            ? 'زيادة ${item.newQuantity - item.previousQuantity!}'
+                            : item.newQuantity < item.previousQuantity!
+                            ? 'نقص ${item.previousQuantity! - item.newQuantity}'
+                            : 'دون تغيير';
                         return ListTile(
                           dense: true,
                           contentPadding: EdgeInsets.zero,
                           title: Text(item.productName),
                           subtitle: Text(
-                            'السابق: $previous | الجديد: ${item.newQuantity} | صفوف المصدر: ${item.rowCount}',
+                            'السابق: $previous | الجديد: ${item.newQuantity} | $change | صفوف المصدر: ${item.rowCount}',
                           ),
+                          leading: item.newQuantity == 0 ? const Icon(Icons.warning_amber, color: Colors.amber) : null,
                         );
                       },
                     ),
