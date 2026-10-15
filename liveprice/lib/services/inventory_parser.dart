@@ -24,6 +24,7 @@ class InventoryRow {
     required this.unit,
     required this.qty,
     required this.key,
+    this.sourceCode = '',
   });
 
   final int rowNumber;
@@ -31,6 +32,7 @@ class InventoryRow {
   final String unit;
   final num qty;
   final String key;
+  final String sourceCode;
 }
 
 class InventoryIssue {
@@ -65,6 +67,7 @@ class InventoryParseResult {
     var nameColumn = -1;
     var qtyColumn = -1;
     var unitColumn = -1;
+    var codeColumn = -1;
 
     for (var rowIndex = 0; rowIndex < sourceRows.length && rowIndex < 10; rowIndex++) {
       final cells = sourceRows[rowIndex];
@@ -78,6 +81,7 @@ class InventoryParseResult {
         final normalized = _normalizeHeader(cell);
         return normalized.contains(headerUnit) || normalized.contains('الواحده') || normalized.contains('الوحده');
       });
+      codeColumn = cells.indexWhere(_isCodeHeader);
       break;
     }
     if (headerIndex < 0) throw Exception('لم أجد أعمدة المادة والرصيد الحالي');
@@ -89,8 +93,9 @@ class InventoryParseResult {
       final cells = sourceRows[rowIndex];
       final name = _cellAt(cells, nameColumn).trim();
       final unit = unitColumn < 0 ? '' : _cellAt(cells, unitColumn).trim();
+      final sourceCode = codeColumn < 0 ? '' : _cellAt(cells, codeColumn).trim();
       final rawQuantity = _cellAt(cells, qtyColumn);
-      if (name.isEmpty && unit.isEmpty && rawQuantity.trim().isEmpty) continue;
+      if (name.isEmpty && unit.isEmpty && sourceCode.isEmpty && rawQuantity.trim().isEmpty) continue;
       final rowNumber = rowIndex + 1;
       if (name.isEmpty) {
         issues.add(InventoryIssue(rowNumber: rowNumber, type: 'name', message: 'لا يوجد اسم للصنف'));
@@ -105,11 +110,14 @@ class InventoryParseResult {
       }
 
       final key = '${normalizeName(name)}|$unit';
-      if (!seenKeys.add(key)) {
+      final duplicateKey = sourceCode.isEmpty ? key : 'code:$sourceCode';
+      if (!seenKeys.add(duplicateKey)) {
         issues.add(InventoryIssue(rowNumber: rowNumber, type: 'duplicate', message: 'صنف مكرر، تم الاحتفاظ بأول ظهور'));
         continue;
       }
-      parsedRows.add(InventoryRow(rowNumber: rowNumber, name: name, unit: unit, qty: quantity, key: key));
+      parsedRows.add(
+        InventoryRow(rowNumber: rowNumber, name: name, unit: unit, qty: quantity, key: key, sourceCode: sourceCode),
+      );
     }
     return InventoryParseResult(rows: parsedRows, issues: issues);
   }
@@ -265,6 +273,30 @@ class InventoryParseResult {
       .replaceAll('ى', 'ي')
       .replaceAll(RegExp(r'\s+'), ' ')
       .trim();
+
+  static bool _isCodeHeader(String value) {
+    final header = _normalizeHeader(value).toLowerCase().replaceAll(RegExp(r'[\s_-]+'), '');
+    return const {
+      'id',
+      'code',
+      'itemcode',
+      'productcode',
+      'sku',
+      'barcode',
+      'معرف',
+      'المعرف',
+      'رمز',
+      'الرمز',
+      'كود',
+      'الكود',
+      'رمزالصنف',
+      'رمزالماده',
+      'رقمالصنف',
+      'رقمالماده',
+      'باركود',
+      'الباركود',
+    }.contains(header);
+  }
 
   static String _normalizeQuantity(String value) {
     final normalized = _normalizeDigits(value).replaceAll(RegExp(r'\s+'), '');
