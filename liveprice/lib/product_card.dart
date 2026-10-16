@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:liveprice/models/product_model.dart';
 import 'package:liveprice/services/firestore_service.dart';
-import 'package:liveprice/services/branch_inventory_store.dart';
 import 'package:liveprice/services/pricing.dart';
 import 'package:liveprice/theme/app_colors.dart';
 import 'package:liveprice/widgets/currency_toggle.dart';
@@ -46,11 +45,7 @@ class _ProductsGridState extends State<ProductsGrid> with SingleTickerProviderSt
   }
 
   Future<_CatalogData> _fetchCatalog() async {
-    final results = await Future.wait<Object>([
-      FirestoreService().getPublicProducts(),
-      BranchInventoryStore().loadPublicStatuses(),
-    ]);
-    final data = _CatalogData(results[0] as List<ProductModel>, results[1] as Map<String, String>);
+    final data = _CatalogData(await FirestoreService().getPublicProducts());
     _cache = data;
     return data;
   }
@@ -129,7 +124,6 @@ class _ProductsGridState extends State<ProductsGrid> with SingleTickerProviderSt
                   final p = products[i];
                   Widget card = ProductCard(
                     product: p,
-                    stockStatus: catalog.stockStatuses[p.id] ?? 'incomplete',
                     isFavorite: _favoriteIds.contains(p.id),
                     onFavoriteToggle: () => setState(() {
                       if (!_favoriteIds.remove(p.id)) _favoriteIds.add(p.id);
@@ -157,25 +151,17 @@ class _ProductsGridState extends State<ProductsGrid> with SingleTickerProviderSt
 }
 
 class _CatalogData {
-  const _CatalogData(this.products, this.stockStatuses);
+  const _CatalogData(this.products);
 
   final List<ProductModel> products;
-  final Map<String, String> stockStatuses;
 }
 
 class ProductCard extends StatefulWidget {
   final ProductModel product;
-  final String stockStatus;
   final bool isFavorite;
   final VoidCallback onFavoriteToggle;
 
-  const ProductCard({
-    super.key,
-    required this.product,
-    this.stockStatus = 'incomplete',
-    required this.isFavorite,
-    required this.onFavoriteToggle,
-  });
+  const ProductCard({super.key, required this.product, required this.isFavorite, required this.onFavoriteToggle});
 
   @override
   State<ProductCard> createState() => _ProductCardState();
@@ -187,17 +173,17 @@ class _ProductCardState extends State<ProductCard> {
   @override
   Widget build(BuildContext context) {
     final p = widget.product;
-    final stockLabel = switch (widget.stockStatus) {
-      'out' => 'نافد',
-      'limited' => 'محدود',
+    final stockLabel = switch (p.stock) {
+      'out' => 'نفد',
+      'limited' => 'كمية محدودة',
       'available' => 'متوفر',
-      _ => 'مخزون غير مكتمل',
+      _ => null,
     };
-    final stockColor = switch (widget.stockStatus) {
+    final stockColor = switch (p.stock) {
       'out' => Colors.redAccent,
       'limited' => Colors.amber,
       'available' => Colors.greenAccent,
-      _ => AppColors.textDim,
+      _ => null,
     };
     return MouseRegion(
       onEnter: (_) => setState(() => _hover = true),
@@ -252,25 +238,26 @@ class _ProductCardState extends State<ProductCard> {
                         left: 6,
                         child: _HeartButton(isFavorite: widget.isFavorite, onTap: widget.onFavoriteToggle),
                       ),
-                      Positioned(
-                        bottom: 6,
-                        right: 6,
-                        child: Container(
-                          constraints: const BoxConstraints(maxWidth: 112, minHeight: 22),
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: AppColors.bg.withAlpha(220),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: stockColor.withAlpha(150)),
-                          ),
-                          child: Text(
-                            stockLabel,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: stockColor, fontSize: 10, fontWeight: FontWeight.w700),
+                      if (stockLabel != null && stockColor != null)
+                        Positioned(
+                          bottom: 6,
+                          right: 6,
+                          child: Container(
+                            constraints: const BoxConstraints(maxWidth: 112, minHeight: 22),
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppColors.bg.withAlpha(220),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: stockColor.withAlpha(150)),
+                            ),
+                            child: Text(
+                              stockLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(color: stockColor, fontSize: 10, fontWeight: FontWeight.w700),
+                            ),
                           ),
                         ),
-                      ),
                     ],
                   ),
                 ),

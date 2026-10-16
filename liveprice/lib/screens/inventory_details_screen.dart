@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:liveprice/models/product_model.dart';
 import 'package:liveprice/services/firestore_service.dart';
 import 'package:liveprice/services/inventory_parser.dart';
-import 'package:liveprice/services/branch_inventory_store.dart';
 import 'package:liveprice/theme/app_colors.dart';
 
 class InventoryDetailsScreen extends StatefulWidget {
@@ -17,8 +16,7 @@ class _InventoryDetailsScreenState extends State<InventoryDetailsScreen> {
   static const _branchNames = {'b1': 'المركز الرئيسي', 'b2': 'طرطوس', 'b3': 'جديدة البحر'};
 
   late Future<List<ProductModel>> _productsFuture;
-  late Future<Map<String, Map<String, num>>> _quantitiesFuture;
-  late Future<Map<String, DateTime?>> _lastUploadsFuture;
+  late Future<_BranchInventoryData> _inventoryFuture;
   String _query = '';
 
   @override
@@ -29,28 +27,60 @@ class _InventoryDetailsScreenState extends State<InventoryDetailsScreen> {
 
   void _load() {
     _productsFuture = FirestoreService().getProducts();
-    _quantitiesFuture = BranchInventoryStore().loadAllQuantities();
-    _lastUploadsFuture = _loadLastUploads();
+    _inventoryFuture = _loadBranchInventory();
   }
 
-  Future<Map<String, DateTime?>> _loadLastUploads() async {
-    final result = <String, DateTime?>{};
-    for (final branchId in _branchNames.keys) {
-      try {
-        final snapshot = await FirebaseFirestore.instance.collection('inventory_meta').doc(branchId).get();
-        final value = snapshot.data()?['lastUploadAt'];
-        result[branchId] = value is Timestamp ? value.toDate() : null;
-      } catch (_) {
-        result[branchId] = null;
-      }
+  Future<_BranchInventoryData> _loadBranchInventory() async {
+    final branchIds = _branchNames.keys.toList(growable: false);
+    final snapshots = await Future.wait([
+      for (final branchId in branchIds) FirebaseFirestore.instance.collection('branch_stock').doc(branchId).get(),
+      for (final branchId in branchIds) FirebaseFirestore.instance.collection('inventory_meta').doc(branchId).get(),
+    ]);
+    final quantities = <String, Map<String, num>>{};
+    final units = <String, Map<String, String>>{};
+    final lastUploads = <String, DateTime?>{};
+    for (var index = 0; index < branchIds.length; index++) {
+      final stockData = snapshots[index].data() ?? <String, dynamic>{};
+      final rawQuantities = stockData['q'];
+      final rawUnits = stockData['u'];
+      quantities[branchIds[index]] = {
+        if (rawQuantities is Map)
+          for (final entry in rawQuantities.entries)
+            if (entry.key is String && entry.value is num && (entry.value as num).isFinite)
+              entry.key as String: entry.value as num,
+      };
+      units[branchIds[index]] = {
+        if (rawUnits is Map)
+          for (final entry in rawUnits.entries)
+            if (entry.key is String && entry.value is String) entry.key as String: entry.value as String,
+      };
+      final value = snapshots[index + branchIds.length].data()?['lastUploadAt'];
+      lastUploads[branchIds[index]] = value is Timestamp ? value.toDate() : null;
     }
-    return result;
+    return _BranchInventoryData(quantities: quantities, units: units, lastUploads: lastUploads);
+  }
+
+  static Map<String, num> _totalsByUnit(ProductModel product, _BranchInventoryData inventory) {
+    final totals = <String, num>{};
+    for (final branchId in _branchNames.keys) {
+      final quantity = inventory.quantities[branchId]?[product.id];
+      if (quantity == null) continue;
+      final unit = inventory.units[branchId]?[product.id] ?? product.unit;
+      totals.update(unit, (total) => total + quantity, ifAbsent: () => quantity);
+    }
+    return totals;
+  }
+
+  static String _totalLabel(ProductModel product, _BranchInventoryData inventory) {
+    final totals = _totalsByUnit(product, inventory);
+    if (totals.isEmpty) return 'الكميات غير مسجلة';
+    return totals.entries.map((entry) => 'الإجمالي: ${entry.value} ${entry.key}'.trim()).join(' • ');
   }
 
   Future<void> _refresh() async {
     setState(_load);
     try {
-      await Future.wait([_productsFuture, _quantitiesFuture, _lastUploadsFuture]);
+      await Future.wait([_productsFuture, _inventoryFuture]);
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تعذر تحديث بيانات المخزون: $error')));
@@ -58,17 +88,12 @@ class _InventoryDetailsScreenState extends State<InventoryDetailsScreen> {
     }
   }
 
-  void _showProductDetails(ProductModel product, Map<String, num> quantities, Map<String, DateTime?> lastUploads) {
+  void _showProductDetails(ProductModel product, _BranchInventoryData inventory) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (context) => _ProductInventorySheet(
-        product: product,
-        branchNames: _branchNames,
-        quantities: quantities,
-        lastUploads: lastUploads,
-      ),
+      builder: (context) => _ProductInventorySheet(product: product, branchNames: _branchNames, inventory: inventory),
     );
   }
 
@@ -117,43 +142,29 @@ class _InventoryDetailsScreenState extends State<InventoryDetailsScreen> {
                         })
                         .toList(growable: false);
                     if (products.isEmpty) return const Center(child: Text('لا توجد منتجات مطابقة'));
-                    return FutureBuilder<Map<String, Map<String, num>>>(
-                      future: _quantitiesFuture,
-                      builder: (context, quantitySnapshot) {
-                        if (quantitySnapshot.hasError) {
+                    return FutureBuilder<_BranchInventoryData>(
+                      future: _inventoryFuture,
+                      builder: (context, inventorySnapshot) {
+                        if (inventorySnapshot.hasError) {
                           return const Center(child: Text('تعذر قراءة كميات الفروع؛ تحقق من صلاحيات الموظف'));
                         }
-                        if (!quantitySnapshot.hasData) {
+                        if (!inventorySnapshot.hasData) {
                           return const Center(child: CircularProgressIndicator(color: AppColors.accent));
                         }
-                        final branchQuantities = quantitySnapshot.data!;
-                        return FutureBuilder<Map<String, DateTime?>>(
-                          future: _lastUploadsFuture,
-                          builder: (context, uploadSnapshot) {
-                            final lastUploads = uploadSnapshot.data ?? const <String, DateTime?>{};
-                            return ListView.separated(
-                              itemCount: products.length,
-                              separatorBuilder: (_, _) => const Divider(height: 1, indent: 16, endIndent: 16),
-                              itemBuilder: (context, index) {
-                                final product = products[index];
-                                final quantities = <String, num>{
-                                  for (final branchId in _branchNames.keys)
-                                    if (branchQuantities[branchId]!.containsKey(product.id))
-                                      branchId: branchQuantities[branchId]![product.id]!,
-                                };
-                                final total = quantities.length == _branchNames.length
-                                    ? quantities.values.fold<num>(0, (sum, value) => sum + value)
-                                    : null;
-                                return ListTile(
-                                  title: Text(product.name, style: const TextStyle(color: AppColors.text)),
-                                  subtitle: Text(
-                                    total == null ? 'إجمالي المخزون غير مكتمل' : 'الإجمالي المسجل: $total',
-                                    style: const TextStyle(color: AppColors.textDim),
-                                  ),
-                                  trailing: const Icon(Icons.chevron_left, color: AppColors.textDim),
-                                  onTap: () => _showProductDetails(product, quantities, lastUploads),
-                                );
-                              },
+                        final inventory = inventorySnapshot.data!;
+                        return ListView.separated(
+                          itemCount: products.length,
+                          separatorBuilder: (_, _) => const Divider(height: 1, indent: 16, endIndent: 16),
+                          itemBuilder: (context, index) {
+                            final product = products[index];
+                            return ListTile(
+                              title: Text(product.name, style: const TextStyle(color: AppColors.text)),
+                              subtitle: Text(
+                                _totalLabel(product, inventory),
+                                style: const TextStyle(color: AppColors.textDim),
+                              ),
+                              trailing: const Icon(Icons.chevron_left, color: AppColors.textDim),
+                              onTap: () => _showProductDetails(product, inventory),
                             );
                           },
                         );
@@ -170,18 +181,20 @@ class _InventoryDetailsScreenState extends State<InventoryDetailsScreen> {
   }
 }
 
+class _BranchInventoryData {
+  const _BranchInventoryData({required this.quantities, required this.units, required this.lastUploads});
+
+  final Map<String, Map<String, num>> quantities;
+  final Map<String, Map<String, String>> units;
+  final Map<String, DateTime?> lastUploads;
+}
+
 class _ProductInventorySheet extends StatelessWidget {
-  const _ProductInventorySheet({
-    required this.product,
-    required this.branchNames,
-    required this.quantities,
-    required this.lastUploads,
-  });
+  const _ProductInventorySheet({required this.product, required this.branchNames, required this.inventory});
 
   final ProductModel product;
   final Map<String, String> branchNames;
-  final Map<String, num> quantities;
-  final Map<String, DateTime?> lastUploads;
+  final _BranchInventoryData inventory;
 
   String _formatDate(DateTime? date) {
     if (date == null) return 'غير مسجل أو غير متاح';
@@ -209,11 +222,18 @@ class _ProductInventorySheet extends StatelessWidget {
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 title: Text(branch.value),
-                subtitle: Text('آخر جرد: ${_formatDate(lastUploads[branch.key])}'),
+                subtitle: Text('آخر رفع: ${_formatDate(inventory.lastUploads[branch.key])}'),
                 trailing: Text(
-                  quantities[branch.key]?.toString() ?? 'غير مسجل',
+                  '${inventory.quantities[branch.key]?[product.id]?.toString() ?? 'غير مسجل'} '
+                  '${inventory.units[branch.key]?[product.id] ?? product.unit}',
                   style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.text),
                 ),
+              ),
+            for (final total in _InventoryDetailsScreenState._totalsByUnit(product, inventory).entries)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text('الإجمالي (${total.key})'),
+                trailing: Text(total.value.toString(), style: const TextStyle(fontWeight: FontWeight.w700)),
               ),
           ],
         ),

@@ -26,8 +26,7 @@ class InventoryMappingService {
     if (branchId.trim().isEmpty) throw ArgumentError('معرّف الفرع غير موجود');
 
     final skippedWithoutCode = rows.where((row) => row.sourceCode.trim().isEmpty).length;
-    final codedRows = rows.where((row) => row.sourceCode.trim().isNotEmpty).toList(growable: false);
-    if (codedRows.isEmpty) {
+    if (rows.isEmpty) {
       return InventoryMappingSaveResult(mappedCount: 0, unmatchedCount: 0, skippedWithoutCode: skippedWithoutCode);
     }
 
@@ -44,11 +43,11 @@ class InventoryMappingService {
       var unmatchedCount = 0;
       final mappingChanges = <Map<String, String>>[];
 
-      for (final row in codedRows) {
-        final code = row.sourceCode.trim();
+      for (final row in rows) {
+        final code = row.sourceCode.trim().isEmpty ? row.key : row.sourceCode.trim();
         final product = matches[row.rowNumber];
         if (product != null) {
-          mappings[code] = {'p': product.id, 'f': 1, 'n': row.name};
+          mappings[code] = {'p': product.id, 'n': row.name, 'u': row.unit};
           mappedCount++;
           mappingChanges.add({'code': code, 'productId': product.id, 'name': row.name});
         } else {

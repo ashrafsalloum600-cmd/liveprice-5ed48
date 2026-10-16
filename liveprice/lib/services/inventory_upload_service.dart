@@ -12,6 +12,8 @@ class InventoryUploadItem {
     required this.newQuantity,
     required this.rowCount,
     required this.publicStatus,
+    required this.previousPublicStatus,
+    required this.unit,
   });
 
   final String productId;
@@ -20,6 +22,8 @@ class InventoryUploadItem {
   final num newQuantity;
   final int rowCount;
   final String publicStatus;
+  final String previousPublicStatus;
+  final String unit;
 }
 
 class InventoryUploadPreview {
@@ -53,43 +57,38 @@ class InventoryUploadService {
     _quantityField(branchId);
     final reads = await Future.wait([
       _db.collection('branch_maps').doc(branchId).get(),
-      ...BranchInventoryStore.branchIds.map(
-        (id) => _db.collection('branch_inventory').doc(id).collection('items').get(),
-      ),
+      ...BranchInventoryStore.branchIds.map((id) => _db.collection('branch_stock').doc(id).get()),
     ]);
-    final mapSnapshot = reads.first as DocumentSnapshot<Map<String, dynamic>>;
+    final mapSnapshot = reads.first;
     final mapData = mapSnapshot.data() ?? <String, dynamic>{};
     final mappings = _stringKeyedMap(mapData['m']);
     final quantitiesByBranch = <String, Map<String, num>>{};
     for (var index = 0; index < BranchInventoryStore.branchIds.length; index++) {
       final branchId = BranchInventoryStore.branchIds[index];
-      final snapshot = reads[index + 1] as QuerySnapshot<Map<String, dynamic>>;
+      final snapshot = reads[index + 1];
+      final quantityData = _stringKeyedMap(snapshot.data()?['q']);
       quantitiesByBranch[branchId] = {
-        for (final document in snapshot.docs)
-          if (document.data()['quantity'] is num) document.id: document.data()['quantity'] as num,
+        for (final entry in quantityData.entries)
+          if (entry.value is num && (entry.value as num).isFinite) entry.key: entry.value as num,
       };
     }
     final productsById = {for (final product in existingProducts) product.id: product};
     final totals = <String, num>{};
     final sourceRowsByProduct = <String, int>{};
+    final unitsByProduct = <String, String>{};
     var unmappedCount = 0;
     var missingProductCount = 0;
     var invalidMappingCount = 0;
 
     for (final row in rows) {
-      final code = row.sourceCode.trim();
-      if (code.isEmpty) {
-        unmappedCount++;
-        continue;
-      }
+      final code = row.sourceCode.trim().isEmpty ? row.key : row.sourceCode.trim();
       final rawMapping = mappings[code];
       if (rawMapping is! Map) {
         unmappedCount++;
         continue;
       }
       final productId = rawMapping['p'];
-      final factor = rawMapping['f'];
-      if (productId is! String || productId.isEmpty || factor is! num || !factor.isFinite || factor <= 0) {
+      if (productId is! String || productId.isEmpty) {
         invalidMappingCount++;
         continue;
       }
@@ -98,13 +97,15 @@ class InventoryUploadService {
         missingProductCount++;
         continue;
       }
-      final convertedQuantity = row.qty * factor;
-      if (!convertedQuantity.isFinite) {
+      final quantity = row.qty;
+      if (!quantity.isFinite) {
         invalidMappingCount++;
         continue;
       }
-      totals.update(productId, (total) => total + convertedQuantity, ifAbsent: () => convertedQuantity);
+      totals.update(productId, (total) => total + quantity, ifAbsent: () => quantity);
       sourceRowsByProduct.update(productId, (count) => count + 1, ifAbsent: () => 1);
+      final mappedUnit = rawMapping['u'];
+      unitsByProduct.putIfAbsent(productId, () => mappedUnit is String ? mappedUnit : product.unit);
     }
 
     var unchangedCount = 0;
@@ -120,6 +121,9 @@ class InventoryUploadService {
         for (final id in BranchInventoryStore.branchIds)
           if (quantitiesByBranch[id]!.containsKey(product.id)) id: quantitiesByBranch[id]![product.id]!,
       };
+      final previousStatus = BranchInventoryStore.publicStatusFor({
+        for (final id in BranchInventoryStore.branchIds) id: quantitiesByBranch[id]![product.id],
+      });
       projectedQuantities[branchId] = entry.value;
       items.add(
         InventoryUploadItem(
@@ -129,6 +133,8 @@ class InventoryUploadService {
           newQuantity: entry.value,
           rowCount: sourceRowsByProduct[entry.key]!,
           publicStatus: BranchInventoryStore.publicStatus(projectedQuantities),
+          previousPublicStatus: previousStatus,
+          unit: unitsByProduct[entry.key] ?? product.unit,
         ),
       );
     }
@@ -151,43 +157,46 @@ class InventoryUploadService {
     final auditChanges = preview.items
         .map((item) => {'productId': item.productId, 'oldQty': item.previousQuantity, 'newQty': item.newQuantity})
         .toList(growable: false);
-    final inventoryCollection = _db.collection('branch_inventory').doc(preview.branchId).collection('items');
+    final quantities = <String, num>{for (final item in preview.items) item.productId: item.newQuantity};
+    final units = <String, String>{for (final item in preview.items) item.productId: item.unit};
+    final inventoryBatch = _db.batch();
+    inventoryBatch.set(_db.collection('branch_stock').doc(preview.branchId), {
+      'q': quantities,
+      'u': units,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+    inventoryBatch.set(_db.collection('inventory_meta').doc(preview.branchId), {
+      'lastUploadAt': FieldValue.serverTimestamp(),
+      'by': user?.uid,
+      'rows': preview.items.length,
+    }, SetOptions(merge: true));
+    inventoryBatch.set(_db.collection('audit_logs').doc(), {
+      'type': 'inventory_upload',
+      'uid': user?.uid,
+      'email': user?.email,
+      'name': profile?.name ?? user?.displayName ?? '',
+      'role': profile?.role ?? '',
+      'branchId': preview.branchId,
+      'at': FieldValue.serverTimestamp(),
+      'details': {
+        'updatedProducts': preview.items.length,
+        'unchangedProducts': preview.unchangedCount,
+        'unmappedRows': preview.unmappedCount,
+        'missingProducts': preview.missingProductCount,
+        'invalidMappings': preview.invalidMappingCount,
+        'changes': auditChanges,
+      },
+    });
+    await inventoryBatch.commit();
 
-    for (var start = 0; start < preview.items.length; start += 200) {
-      final end = (start + 200 < preview.items.length) ? start + 200 : preview.items.length;
+    final changedStatuses = preview.items.where((item) => item.previousPublicStatus != item.publicStatus).toList();
+    for (var start = 0; start < changedStatuses.length; start += 400) {
+      final end = (start + 400 < changedStatuses.length) ? start + 400 : changedStatuses.length;
       final batch = _db.batch();
-      for (final item in preview.items.sublist(start, end)) {
-        batch.set(inventoryCollection.doc(item.productId), {
-          'quantity': item.newQuantity,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-        batch.set(_db.collection('inventory_public').doc(item.productId), {
-          'status': item.publicStatus,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      }
-      if (end == preview.items.length) {
-        batch.set(_db.collection('inventory_meta').doc(preview.branchId), {
-          'lastUploadAt': FieldValue.serverTimestamp(),
-          'by': user?.uid,
-          'rows': preview.items.length,
-        }, SetOptions(merge: true));
-        batch.set(_db.collection('audit_logs').doc(), {
-          'type': 'inventory_upload',
-          'uid': user?.uid,
-          'email': user?.email,
-          'name': profile?.name ?? user?.displayName ?? '',
-          'role': profile?.role ?? '',
-          'branchId': preview.branchId,
-          'at': FieldValue.serverTimestamp(),
-          'details': {
-            'updatedProducts': preview.items.length,
-            'unchangedProducts': preview.unchangedCount,
-            'unmappedRows': preview.unmappedCount,
-            'missingProducts': preview.missingProductCount,
-            'invalidMappings': preview.invalidMappingCount,
-            'changes': auditChanges,
-          },
+      for (final item in changedStatuses.sublist(start, end)) {
+        batch.set(_db.collection('products_public').doc(item.productId), {
+          'stock': item.publicStatus,
+          'stockAt': FieldValue.serverTimestamp(),
         });
       }
       await batch.commit();
@@ -195,11 +204,10 @@ class InventoryUploadService {
     return preview.items.length;
   }
 
-  String _quantityField(String branchId) {
+  void _quantityField(String branchId) {
     if (!const {'b1', 'b2', 'b3'}.contains(branchId)) {
       throw ArgumentError.value(branchId, 'branchId', 'معرّف الفرع غير معروف');
     }
-    return 'q_$branchId';
   }
 
   Map<String, dynamic> _stringKeyedMap(Object? value) {

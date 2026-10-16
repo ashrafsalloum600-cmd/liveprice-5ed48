@@ -8,6 +8,7 @@ class ProductModel {
   final String category;
   final String imageUrl;
   final String currency;
+  final String stock;
 
   const ProductModel({
     required this.id,
@@ -17,6 +18,7 @@ class ProductModel {
     required this.category,
     required this.imageUrl,
     required this.currency,
+    this.stock = '',
   });
 
   factory ProductModel.fromFirestore(DocumentSnapshot doc) {
@@ -31,6 +33,7 @@ class ProductModel {
       category: data['category'] as String? ?? '',
       imageUrl: data['imageUrl'] as String? ?? '',
       currency: currency,
+      stock: data['stock'] as String? ?? '',
     );
   }
 

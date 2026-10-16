@@ -17,6 +17,21 @@ String normalizeName(String value) {
   return normalized.toLowerCase().replaceAll(RegExp(r'\s*\*\s*'), '*').replaceAll(RegExp(r'\s+'), ' ').trim();
 }
 
+String inventoryMappingKey(String name, String unit) {
+  final value = '${normalizeName(name)}|${normalizeName(unit)}';
+  final first = _fnv1a32(value, 0x811c9dc5);
+  final second = _fnv1a32(value, 0x12345678);
+  return 'k${first.toRadixString(16).padLeft(8, '0')}${second.toRadixString(16).padLeft(8, '0')}';
+}
+
+int _fnv1a32(String value, int offset) {
+  var hash = offset;
+  for (final byte in utf8.encode(value)) {
+    hash = ((hash ^ byte) * 0x01000193) & 0xffffffff;
+  }
+  return hash;
+}
+
 class InventoryRow {
   const InventoryRow({
     required this.rowNumber,
@@ -109,7 +124,7 @@ class InventoryParseResult {
         continue;
       }
 
-      final key = '${normalizeName(name)}|$unit';
+      final key = inventoryMappingKey(name, unit);
       final duplicateKey = sourceCode.isEmpty ? key : 'code:$sourceCode';
       if (!seenKeys.add(duplicateKey)) {
         issues.add(InventoryIssue(rowNumber: rowNumber, type: 'duplicate', message: 'صنف مكرر، تم الاحتفاظ بأول ظهور'));

@@ -14,31 +14,22 @@ class BranchInventoryStore {
   static const branchIds = ['b1', 'b2', 'b3'];
   final FirebaseFirestore _db;
 
-  CollectionReference<Map<String, dynamic>> _branchItems(String branchId) =>
-      _db.collection('branch_inventory').doc(branchId).collection('items');
-
   Future<Map<String, Map<String, num>>> loadAllQuantities() async {
-    final snapshots = await Future.wait(branchIds.map((branchId) => _branchItems(branchId).get()));
+    final snapshots = await Future.wait(
+      branchIds.map((branchId) => _db.collection('branch_stock').doc(branchId).get()),
+    );
     final result = <String, Map<String, num>>{};
     for (var index = 0; index < branchIds.length; index++) {
       final quantities = <String, num>{};
-      for (final document in snapshots[index].docs) {
-        final quantity = document.data()['quantity'];
-        if (quantity is num && quantity.isFinite) quantities[document.id] = quantity;
+      final data = snapshots[index].data() ?? <String, dynamic>{};
+      final rawQuantities = data['q'];
+      if (rawQuantities is Map) {
+        for (final entry in rawQuantities.entries) {
+          final quantity = entry.value;
+          if (entry.key is String && quantity is num && quantity.isFinite) quantities[entry.key as String] = quantity;
+        }
       }
       result[branchIds[index]] = quantities;
-    }
-    return result;
-  }
-
-  Future<Map<String, String>> loadPublicStatuses() async {
-    final snapshot = await _db.collection('inventory_public').get();
-    final result = <String, String>{};
-    for (final document in snapshot.docs) {
-      final status = document.data()['status'];
-      if (status is String && const {'incomplete', 'out', 'limited', 'available'}.contains(status)) {
-        result[document.id] = status;
-      }
     }
     return result;
   }
@@ -49,10 +40,18 @@ class BranchInventoryStore {
     }
 
     final productSnapshot = await _db.collection('products').get(const GetOptions(source: Source.server));
-    final branchSnapshots = await Future.wait(branchIds.map((branchId) => _branchItems(branchId).get()));
+    final branchSnapshots = await Future.wait(
+      branchIds.map((branchId) => _db.collection('branch_stock').doc(branchId).get()),
+    );
     final current = <String, Map<String, Map<String, dynamic>>>{};
     for (var index = 0; index < branchIds.length; index++) {
-      current[branchIds[index]] = {for (final document in branchSnapshots[index].docs) document.id: document.data()};
+      final data = branchSnapshots[index].data() ?? <String, dynamic>{};
+      final quantities = data['q'];
+      current[branchIds[index]] = {
+        if (quantities is Map)
+          for (final entry in quantities.entries)
+            if (entry.key is String) entry.key as String: {'quantity': entry.value},
+      };
     }
 
     final conflicts = <String>[];
@@ -106,11 +105,13 @@ class BranchInventoryStore {
           }
           if (effectiveQuantity == null) {
             final legacyTime = productData[timeField];
+            final unit = productData['unit'];
             final stockData = <String, dynamic>{
-              'quantity': legacyQuantity,
+              'q': {productDocument.id: legacyQuantity},
+              'u': {productDocument.id: unit is String ? unit : ''},
               'updatedAt': legacyTime is Timestamp ? legacyTime : FieldValue.serverTimestamp(),
             };
-            productWrites.add(MapEntry(_branchItems(branchId).doc(productDocument.id), stockData));
+            productWrites.add(MapEntry(_db.collection('branch_stock').doc(branchId), stockData));
             effectiveQuantity = legacyQuantity;
             migratedQuantities++;
           }
@@ -130,27 +131,6 @@ class BranchInventoryStore {
         batchOperations++;
       }
 
-      final publicFields = <String, dynamic>{
-        for (final field in ['name', 'price', 'currency', 'unit', 'category', 'imageUrl'])
-          field:
-              productData[field] ??
-              switch (field) {
-                'name' || 'unit' || 'category' || 'imageUrl' => '',
-                'price' => 0,
-                'currency' => 'SYP',
-                _ => null,
-              },
-      };
-      batch.set(_db.collection('products_public').doc(productDocument.id), publicFields);
-      batchOperations++;
-
-      final hasConflictForProduct = conflicts.any((conflict) => conflict.startsWith('${productDocument.id}:'));
-      final status = hasConflictForProduct ? 'incomplete' : publicStatusFor(postMigrationQuantities);
-      batch.set(_db.collection('inventory_public').doc(productDocument.id), {
-        'status': status,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-      batchOperations++;
       batchMigratedCount += productWrites.length;
       batchProductCount++;
     }
