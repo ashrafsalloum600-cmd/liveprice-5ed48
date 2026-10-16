@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:liveprice/models/product_model.dart';
+import 'package:liveprice/services/audit_service.dart';
 import 'package:liveprice/services/firestore_service.dart';
 import 'package:liveprice/services/branch_inventory_store.dart';
 import 'package:liveprice/theme/app_colors.dart';
@@ -17,6 +18,7 @@ class _OwnerInventoryToolsScreenState extends State<OwnerInventoryToolsScreen> {
   late Future<Map<String, Map<String, num>>> _quantitiesFuture;
   late Future<List<Map<String, dynamic>>> _auditFuture;
   bool _migrating = false;
+  bool _publishing = false;
 
   @override
   void initState() {
@@ -49,6 +51,37 @@ class _OwnerInventoryToolsScreenState extends State<OwnerInventoryToolsScreen> {
   }
 
   String _readError(String collection) => 'تعذرت قراءة $collection. تحقق من صلاحيات المالك في قواعد Firestore.';
+
+  Future<void> _publishCatalog() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('نشر الكتالوج العام'),
+        content: const Text(
+          'سيقرأ النظام المنتجات مرة واحدة من الخادم، ثم يكتب بيانات الكتالوج العام مرة واحدة لكل منتج.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('إلغاء')),
+          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('نشر')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _publishing = true);
+    try {
+      final count = await FirestoreService().publishCatalog();
+      await AuditService.log('publish_catalog', details: {'count': count});
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('نُشر الكتالوج العام: $count منتج')));
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل نشر الكتالوج العام: $error')));
+      }
+    } finally {
+      if (mounted) setState(() => _publishing = false);
+    }
+  }
 
   Future<void> _migrateLegacyInventory() async {
     final confirmed = await showDialog<bool>(
@@ -100,6 +133,13 @@ class _OwnerInventoryToolsScreenState extends State<OwnerInventoryToolsScreen> {
             backgroundColor: AppColors.bg,
             foregroundColor: AppColors.text,
             actions: [
+              TextButton.icon(
+                onPressed: _publishing ? null : _publishCatalog,
+                icon: _publishing
+                    ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.public),
+                label: const Text('نشر الكتالوج العام'),
+              ),
               IconButton(
                 tooltip: 'نقل الكميات القديمة إلى المخزن الخاص',
                 onPressed: _migrating ? null : _migrateLegacyInventory,

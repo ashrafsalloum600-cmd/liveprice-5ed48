@@ -23,6 +23,35 @@ class FirestoreService {
     return snapshot.docs.map(ProductModel.fromFirestore).toList();
   }
 
+  Future<int> publishCatalog() async {
+    final snapshot = await _db.collection(_collection).get(const GetOptions(source: Source.server));
+    WriteBatch batch = _db.batch();
+    var ops = 0;
+
+    Future<void> flush() async {
+      if (ops == 0) return;
+      await batch.commit();
+      batch = _db.batch();
+      ops = 0;
+    }
+
+    for (final document in snapshot.docs) {
+      final data = document.data();
+      batch.set(_db.collection('products_public').doc(document.id), {
+        'name': data['name'] ?? '',
+        'price': data['price'] is num ? data['price'] : 0,
+        'currency': data['currency'] ?? 'SYP',
+        'unit': data['unit'] ?? '',
+        'category': data['category'] ?? '',
+        'imageUrl': data['imageUrl'] ?? '',
+      }, SetOptions(merge: true));
+      ops++;
+      if (ops == 400) await flush();
+    }
+    await flush();
+    return snapshot.docs.length;
+  }
+
   Future<void> uploadProductsBatch(List<Map<String, dynamic>> productsData) async {
     final existing = await _db.collection(_collection).get(const GetOptions(source: Source.server));
     final current = {for (final d in existing.docs) d.id: d.data()};
@@ -59,7 +88,12 @@ class FirestoreService {
 
       if (old != null) {
         final nameChanged = fields['name'] != null && fields['name'] != old['name'];
-        if (oldPrice == newPrice && oldCur == newCur && !nameChanged) continue;
+        final catalogFieldsChanged = [
+          'unit',
+          'category',
+          'imageUrl',
+        ].any((field) => fields.containsKey(field) && fields[field] != old[field]);
+        if (oldPrice == newPrice && oldCur == newCur && !nameChanged && !catalogFieldsChanged) continue;
       }
 
       batch.set(_db.collection(_collection).doc(id), fields, SetOptions(merge: true));
