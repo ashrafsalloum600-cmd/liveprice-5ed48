@@ -5,6 +5,7 @@ import 'package:liveprice/services/audit_service.dart';
 import 'package:liveprice/services/firestore_service.dart';
 import 'package:liveprice/services/branch_inventory_store.dart';
 import 'package:liveprice/theme/app_colors.dart';
+import 'package:liveprice/widgets/wipe_data_button.dart';
 
 class OwnerInventoryToolsScreen extends StatefulWidget {
   const OwnerInventoryToolsScreen({super.key});
@@ -128,6 +129,9 @@ class _OwnerInventoryToolsScreenState extends State<OwnerInventoryToolsScreen> {
         length: 2,
         child: Scaffold(
           backgroundColor: AppColors.bg,
+          bottomNavigationBar: const SafeArea(
+            child: Padding(padding: EdgeInsets.fromLTRB(16, 0, 16, 8), child: WipeDataButton()),
+          ),
           appBar: AppBar(
             title: const Text('أدوات المالك'),
             backgroundColor: AppColors.bg,

@@ -51,16 +51,26 @@ class _ProductsGridState extends State<ProductsGrid> with SingleTickerProviderSt
   }
 
   Future<void> _refreshProducts() async {
-    setState(() => _refreshing = true);
+    setState(() {
+      _refreshing = true;
+    });
     try {
       final data = await _fetchCatalog();
-      if (mounted) setState(() => _future = Future.value(data));
+      if (mounted) {
+        setState(() {
+          _future = Future.value(data);
+        });
+      }
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تعذر تحديث المخزون: $error')));
       }
     } finally {
-      if (mounted) setState(() => _refreshing = false);
+      if (mounted) {
+        setState(() {
+          _refreshing = false;
+        });
+      }
     }
   }
 
@@ -125,9 +135,13 @@ class _ProductsGridState extends State<ProductsGrid> with SingleTickerProviderSt
                   Widget card = ProductCard(
                     product: p,
                     isFavorite: _favoriteIds.contains(p.id),
-                    onFavoriteToggle: () => setState(() {
-                      if (!_favoriteIds.remove(p.id)) _favoriteIds.add(p.id);
-                    }),
+                    onFavoriteToggle: () {
+                      setState(() {
+                        if (!_favoriteIds.remove(p.id)) {
+                          _favoriteIds.add(p.id);
+                        }
+                      });
+                    },
                   );
                   if (i < _staggerCount) {
                     final a = _anims[i];
