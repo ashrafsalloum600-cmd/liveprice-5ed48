@@ -68,7 +68,8 @@ class FirestoreService {
     }
 
     for (final data in productsData) {
-      final id = data['id'] as String;
+      final id = (data['id'] ?? '').toString().trim();
+      if (id.isEmpty) continue;
       final fields = Map<String, dynamic>.from(data)..remove('id');
       final old = current[id];
 

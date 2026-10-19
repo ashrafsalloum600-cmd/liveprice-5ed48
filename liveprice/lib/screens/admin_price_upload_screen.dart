@@ -149,6 +149,7 @@ class _AdminPriceUploadScreenState extends State<AdminPriceUploadScreen> {
   }
 
   List<Map<String, dynamic>> _parseCsv(String content) {
+    content = content.replaceFirst('\uFEFF', '');
     final lines = content.split(RegExp(r'\r?\n')).where((l) => l.trim().isNotEmpty).toList();
     if (lines.isEmpty) return [];
 
