@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:liveprice/models/product_model.dart';
+import 'package:liveprice/services/branch_inventory_store.dart';
 import 'package:liveprice/services/firestore_service.dart';
 import 'package:liveprice/services/inventory_parser.dart';
 import 'package:liveprice/theme/app_colors.dart';
@@ -32,32 +33,18 @@ class _InventoryDetailsScreenState extends State<InventoryDetailsScreen> {
 
   Future<_BranchInventoryData> _loadBranchInventory() async {
     final branchIds = _branchNames.keys.toList(growable: false);
-    final snapshots = await Future.wait([
-      for (final branchId in branchIds) FirebaseFirestore.instance.collection('branch_stock').doc(branchId).get(),
+    final store = BranchInventoryStore();
+    final quantitiesFuture = store.loadAllQuantities();
+    final metaSnapshots = await Future.wait([
       for (final branchId in branchIds) FirebaseFirestore.instance.collection('inventory_meta').doc(branchId).get(),
     ]);
-    final quantities = <String, Map<String, num>>{};
-    final units = <String, Map<String, String>>{};
+    final quantities = await quantitiesFuture;
     final lastUploads = <String, DateTime?>{};
     for (var index = 0; index < branchIds.length; index++) {
-      final stockData = snapshots[index].data() ?? <String, dynamic>{};
-      final rawQuantities = stockData['q'];
-      final rawUnits = stockData['u'];
-      quantities[branchIds[index]] = {
-        if (rawQuantities is Map)
-          for (final entry in rawQuantities.entries)
-            if (entry.key is String && entry.value is num && (entry.value as num).isFinite)
-              entry.key as String: entry.value as num,
-      };
-      units[branchIds[index]] = {
-        if (rawUnits is Map)
-          for (final entry in rawUnits.entries)
-            if (entry.key is String && entry.value is String) entry.key as String: entry.value as String,
-      };
-      final value = snapshots[index + branchIds.length].data()?['lastUploadAt'];
+      final value = metaSnapshots[index].data()?['lastUploadAt'];
       lastUploads[branchIds[index]] = value is Timestamp ? value.toDate() : null;
     }
-    return _BranchInventoryData(quantities: quantities, units: units, lastUploads: lastUploads);
+    return _BranchInventoryData(quantities: quantities, lastUploads: lastUploads);
   }
 
   static Map<String, num> _totalsByUnit(ProductModel product, _BranchInventoryData inventory) {
@@ -65,7 +52,7 @@ class _InventoryDetailsScreenState extends State<InventoryDetailsScreen> {
     for (final branchId in _branchNames.keys) {
       final quantity = inventory.quantities[branchId]?[product.id];
       if (quantity == null) continue;
-      final unit = inventory.units[branchId]?[product.id] ?? product.unit;
+      final unit = product.unit;
       totals.update(unit, (total) => total + quantity, ifAbsent: () => quantity);
     }
     return totals;
@@ -182,10 +169,9 @@ class _InventoryDetailsScreenState extends State<InventoryDetailsScreen> {
 }
 
 class _BranchInventoryData {
-  const _BranchInventoryData({required this.quantities, required this.units, required this.lastUploads});
+  const _BranchInventoryData({required this.quantities, required this.lastUploads});
 
   final Map<String, Map<String, num>> quantities;
-  final Map<String, Map<String, String>> units;
   final Map<String, DateTime?> lastUploads;
 }
 
@@ -224,8 +210,7 @@ class _ProductInventorySheet extends StatelessWidget {
                 title: Text(branch.value),
                 subtitle: Text('آخر رفع: ${_formatDate(inventory.lastUploads[branch.key])}'),
                 trailing: Text(
-                  '${inventory.quantities[branch.key]?[product.id]?.toString() ?? 'غير مسجل'} '
-                  '${inventory.units[branch.key]?[product.id] ?? product.unit}',
+                  '${inventory.quantities[branch.key]?[product.id]?.toString() ?? 'غير مسجل'} ${product.unit}',
                   style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.text),
                 ),
               ),

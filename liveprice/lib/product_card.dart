@@ -246,6 +246,15 @@ class _ProductCardState extends State<ProductCard> {
                                 fit: BoxFit.cover,
                                 cacheWidth: 300,
                                 gaplessPlayback: true,
+                                loadingBuilder: (context, child, progress) {
+                                  if (progress == null) return child;
+                                  return const Center(
+                                    child: SizedBox.square(
+                                      dimension: 18,
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent),
+                                    ),
+                                  );
+                                },
                                 errorBuilder: (_, _, _) =>
                                     const Icon(Icons.image_outlined, size: 32, color: AppColors.textFaint),
                               ),

@@ -175,7 +175,7 @@ class _OwnerInventoryToolsScreenState extends State<OwnerInventoryToolsScreen> {
                       if (quantitySnapshot.connectionState == ConnectionState.waiting) {
                         return const Center(child: CircularProgressIndicator(color: AppColors.accent));
                       }
-                      if (quantitySnapshot.hasError) return Center(child: Text(_readError('branch_stock')));
+                      if (quantitySnapshot.hasError) return Center(child: Text(_readError('branch_inventory')));
                       return _InventoryReport(
                         products: snapshot.data ?? const [],
                         quantities: quantitySnapshot.data ?? const {},

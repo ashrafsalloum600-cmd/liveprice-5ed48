@@ -55,23 +55,13 @@ class InventoryUploadService {
     required List<ProductModel> existingProducts,
   }) async {
     _quantityField(branchId);
-    final reads = await Future.wait([
-      _db.collection('branch_maps').doc(branchId).get(),
-      ...BranchInventoryStore.branchIds.map((id) => _db.collection('branch_stock').doc(id).get()),
-    ]);
-    final mapSnapshot = reads.first;
+    final store = BranchInventoryStore(firestore: _db);
+    final mapFuture = _db.collection('branch_maps').doc(branchId).get();
+    final quantitiesFuture = store.loadAllQuantities();
+    final mapSnapshot = await mapFuture;
     final mapData = mapSnapshot.data() ?? <String, dynamic>{};
     final mappings = _stringKeyedMap(mapData['m']);
-    final quantitiesByBranch = <String, Map<String, num>>{};
-    for (var index = 0; index < BranchInventoryStore.branchIds.length; index++) {
-      final branchId = BranchInventoryStore.branchIds[index];
-      final snapshot = reads[index + 1];
-      final quantityData = _stringKeyedMap(snapshot.data()?['q']);
-      quantitiesByBranch[branchId] = {
-        for (final entry in quantityData.entries)
-          if (entry.value is num && (entry.value as num).isFinite) entry.key: entry.value as num,
-      };
-    }
+    final quantitiesByBranch = await quantitiesFuture;
     final productsById = {for (final product in existingProducts) product.id: product};
     final totals = <String, num>{};
     final sourceRowsByProduct = <String, int>{};
@@ -157,20 +147,23 @@ class InventoryUploadService {
     final auditChanges = preview.items
         .map((item) => {'productId': item.productId, 'oldQty': item.previousQuantity, 'newQty': item.newQuantity})
         .toList(growable: false);
-    final quantities = <String, num>{for (final item in preview.items) item.productId: item.newQuantity};
-    final units = <String, String>{for (final item in preview.items) item.productId: item.unit};
-    final inventoryBatch = _db.batch();
-    inventoryBatch.set(_db.collection('branch_stock').doc(preview.branchId), {
-      'q': quantities,
-      'u': units,
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
-    inventoryBatch.set(_db.collection('inventory_meta').doc(preview.branchId), {
+    final store = BranchInventoryStore(firestore: _db);
+    var batch = _db.batch();
+    var ops = 0;
+
+    Future<void> flush() async {
+      if (ops == 0) return;
+      await batch.commit();
+      batch = _db.batch();
+      ops = 0;
+    }
+
+    batch.set(_db.collection('inventory_meta').doc(preview.branchId), {
       'lastUploadAt': FieldValue.serverTimestamp(),
       'by': user?.uid,
       'rows': preview.items.length,
     }, SetOptions(merge: true));
-    inventoryBatch.set(_db.collection('audit_logs').doc(), {
+    batch.set(_db.collection('audit_logs').doc(), {
       'type': 'inventory_upload',
       'uid': user?.uid,
       'email': user?.email,
@@ -187,19 +180,21 @@ class InventoryUploadService {
         'changes': auditChanges,
       },
     });
-    await inventoryBatch.commit();
+    ops += 2;
 
-    for (var start = 0; start < preview.items.length; start += 400) {
-      final end = (start + 400 < preview.items.length) ? start + 400 : preview.items.length;
-      final batch = _db.batch();
-      for (final item in preview.items.sublist(start, end)) {
-        batch.set(_db.collection('products_public').doc(item.productId), {
-          'stock': item.publicStatus,
-          'stockAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
-      }
-      await batch.commit();
+    for (final item in preview.items) {
+      if (ops + 2 > 400) await flush();
+      batch.set(store.itemRef(preview.branchId, item.productId), {
+        'quantity': item.newQuantity,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      batch.set(_db.collection('inventory_public').doc(item.productId), {
+        'status': item.publicStatus,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      ops += 2;
     }
+    await flush();
     return preview.items.length;
   }
 

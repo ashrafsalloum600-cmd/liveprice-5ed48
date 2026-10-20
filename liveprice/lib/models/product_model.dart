@@ -31,9 +31,22 @@ class ProductModel {
       price: (data['price'] as num?)?.toDouble() ?? 0.0,
       unit: data['unit'] as String? ?? '',
       category: data['category'] as String? ?? '',
-      imageUrl: data['imageUrl'] as String? ?? '',
+      imageUrl: _readImageUrl(data),
       currency: currency,
-      stock: data['stock'] as String? ?? '',
+      stock: _readStock(data),
+    );
+  }
+
+  ProductModel copyWith({String? stock, String? imageUrl}) {
+    return ProductModel(
+      id: id,
+      name: name,
+      price: price,
+      unit: unit,
+      category: category,
+      imageUrl: imageUrl ?? this.imageUrl,
+      currency: currency,
+      stock: stock ?? this.stock,
     );
   }
 
@@ -46,5 +59,18 @@ class ProductModel {
       'imageUrl': imageUrl,
       'currency': currency,
     };
+  }
+
+  static String _readImageUrl(Map<String, dynamic> data) {
+    for (final key in ['imageUrl', 'image', 'photoUrl', 'photo']) {
+      final value = data[key];
+      if (value is String && value.trim().isNotEmpty) return value.trim();
+    }
+    return '';
+  }
+
+  static String _readStock(Map<String, dynamic> data) {
+    final value = data['stock'] ?? data['status'];
+    return value is String ? value : '';
   }
 }
