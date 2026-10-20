@@ -55,6 +55,7 @@ class _ProductsGridState extends State<ProductsGrid> with SingleTickerProviderSt
       _refreshing = true;
     });
     try {
+      _cache = null;
       final data = await _fetchCatalog();
       if (mounted) {
         setState(() {
@@ -191,12 +192,14 @@ class _ProductCardState extends State<ProductCard> {
       'out' => 'نفد',
       'limited' => 'كمية محدودة',
       'available' => 'متوفر',
+      'incomplete' => 'بيانات جزئية',
       _ => null,
     };
     final stockColor = switch (p.stock) {
       'out' => Colors.redAccent,
       'limited' => Colors.amber,
       'available' => Colors.greenAccent,
+      'incomplete' => Colors.blueGrey,
       _ => null,
     };
     return MouseRegion(

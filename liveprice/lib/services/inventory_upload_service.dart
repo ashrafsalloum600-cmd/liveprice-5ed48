@@ -189,15 +189,14 @@ class InventoryUploadService {
     });
     await inventoryBatch.commit();
 
-    final changedStatuses = preview.items.where((item) => item.previousPublicStatus != item.publicStatus).toList();
-    for (var start = 0; start < changedStatuses.length; start += 400) {
-      final end = (start + 400 < changedStatuses.length) ? start + 400 : changedStatuses.length;
+    for (var start = 0; start < preview.items.length; start += 400) {
+      final end = (start + 400 < preview.items.length) ? start + 400 : preview.items.length;
       final batch = _db.batch();
-      for (final item in changedStatuses.sublist(start, end)) {
+      for (final item in preview.items.sublist(start, end)) {
         batch.set(_db.collection('products_public').doc(item.productId), {
           'stock': item.publicStatus,
           'stockAt': FieldValue.serverTimestamp(),
-        });
+        }, SetOptions(merge: true));
       }
       await batch.commit();
     }
