@@ -18,22 +18,10 @@ class FirestoreService {
     return snapshot.docs.map(ProductModel.fromFirestore).toList();
   }
 
+  // يقرأ products_public فقط (حقل stock داخلها)
   Future<List<ProductModel>> getPublicProducts() async {
-    final results = await Future.wait([
-      _db.collection('products_public').get(const GetOptions(source: Source.serverAndCache)),
-      _db.collection('inventory_public').get(const GetOptions(source: Source.serverAndCache)),
-    ]);
-    final products = results[0];
-    final inventory = results[1];
-    final statuses = <String, String>{
-      for (final document in inventory.docs)
-        if (document.data()['status'] is String) document.id: document.data()['status'] as String,
-    };
-    return products.docs.map((document) {
-      final product = ProductModel.fromFirestore(document);
-      final status = statuses[product.id];
-      return status == null || status.isEmpty ? product : product.copyWith(stock: status);
-    }).toList();
+    final snapshot = await _db.collection('products_public').get(const GetOptions(source: Source.serverAndCache));
+    return snapshot.docs.map(ProductModel.fromFirestore).toList();
   }
 
   Future<int> publishCatalog() async {
