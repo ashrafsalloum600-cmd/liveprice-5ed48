@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide SnackBar, ScaffoldMessenger;
+import 'package:liveprice/widgets/app_message.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:liveprice/theme/app_colors.dart';
 
@@ -43,11 +44,11 @@ class _AdminNotificationWidgetState extends State<AdminNotificationWidget> {
       _titleController.clear();
       _bodyController.clear();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم إضافة الإشعار لقائمة الإرسال')));
+        showAppMessage('تم إضافة الإشعار لقائمة الإرسال');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل: $e')));
+        showAppMessage('فشل: $e');
       }
     } finally {
       if (mounted) setState(() => _sending = false);

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide SnackBar, ScaffoldMessenger;
+import 'package:liveprice/widgets/app_message.dart';
 import 'package:liveprice/models/product_model.dart';
 import 'package:liveprice/services/audit_service.dart';
 import 'package:liveprice/services/firestore_service.dart';
@@ -73,11 +74,11 @@ class _OwnerInventoryToolsScreenState extends State<OwnerInventoryToolsScreen> {
       final count = await FirestoreService().publishCatalog();
       await AuditService.log('publish_catalog', details: {'count': count});
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('نُشر الكتالوج العام: $count منتج')));
+        showAppMessage('نُشر الكتالوج العام: $count منتج');
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل نشر الكتالوج العام: $error')));
+        showAppMessage('فشل نشر الكتالوج العام: $error');
       }
     } finally {
       if (mounted) setState(() => _publishing = false);
@@ -115,7 +116,7 @@ class _OwnerInventoryToolsScreenState extends State<OwnerInventoryToolsScreen> {
         ),
       );
     } catch (error) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل نقل الكميات: $error')));
+      if (mounted) showAppMessage('فشل نقل الكميات: $error');
     } finally {
       if (mounted) setState(() => _migrating = false);
     }

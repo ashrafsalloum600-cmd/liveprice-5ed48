@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide SnackBar, ScaffoldMessenger;
+import 'package:liveprice/widgets/app_message.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:liveprice/services/auth_service.dart';
 import 'package:liveprice/widgets/social_sign_in_buttons.dart';
@@ -72,7 +73,7 @@ class _ProfileContentState extends State<ProfileContent> {
       await _authService.signOut();
     } on FirebaseAuthException catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message ?? 'تعذر تسجيل الخروج')));
+        showAppMessage(error.message ?? 'تعذر تسجيل الخروج');
       }
     } catch (error) {
       if (mounted) {

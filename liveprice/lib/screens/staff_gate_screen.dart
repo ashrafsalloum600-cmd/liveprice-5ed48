@@ -1,6 +1,7 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide SnackBar, ScaffoldMessenger;
+import 'package:liveprice/widgets/app_message.dart';
 import 'package:liveprice/models/staff_profile.dart';
 import 'package:liveprice/screens/admin_price_upload_screen.dart';
 import 'package:liveprice/screens/inventory_upload_screen.dart';
@@ -59,7 +60,7 @@ class _StaffGateScreenState extends State<StaffGateScreen> {
       await _logLoginIfReady();
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+        showAppMessage(error.toString());
       }
     } finally {
       if (mounted) setState(() => _signingIn = false);

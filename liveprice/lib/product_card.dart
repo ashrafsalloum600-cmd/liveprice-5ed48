@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:liveprice/models/product_model.dart';
 import 'package:liveprice/services/firestore_service.dart';
 import 'package:liveprice/services/pricing.dart';
 import 'package:liveprice/theme/app_colors.dart';
+import 'package:liveprice/widgets/app_message.dart';
 import 'package:liveprice/widgets/currency_toggle.dart';
 
 class ProductsGrid extends StatefulWidget {
@@ -18,6 +22,9 @@ class _ProductsGridState extends State<ProductsGrid> with SingleTickerProviderSt
   static const int _staggerMs = 40;
   static const int _itemMs = 320;
   static const int _totalMs = _staggerCount * _staggerMs + _itemMs;
+
+  static const _kFetchedAt = 'catalog_fetched_at';
+  static const _kPricesAt = 'catalog_prices_at';
 
   static _CatalogData? _cache;
   late Future<_CatalogData> _future;
@@ -38,16 +45,47 @@ class _ProductsGridState extends State<ProductsGrid> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
-    _future = _cache != null ? Future.value(_cache!) : _fetchCatalog();
+    _future = _cache != null ? Future.value(_cache!) : _load();
     _future.then((_) {
       if (mounted) _stagger.forward();
     });
   }
 
+  // يعرض الكاش المحلي فوراً، ثم يحدّث بالخلفية عند الحاجة
+  Future<_CatalogData> _load() async {
+    final cached = await FirestoreService().getPublicProductsFromCache();
+    if (cached.isNotEmpty) {
+      final data = _CatalogData(cached);
+      _cache = data;
+      unawaited(_syncIfStale());
+      return data;
+    }
+    return _fetchCatalog();
+  }
+
   Future<_CatalogData> _fetchCatalog() async {
-    final data = _CatalogData(await FirestoreService().getPublicProducts());
+    final service = FirestoreService();
+    final data = _CatalogData(await service.getPublicProductsFromServer());
     _cache = data;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_kFetchedAt, DateTime.now().millisecondsSinceEpoch);
+      final at = await service.getPricesUpdatedAtMs();
+      if (at != null) await prefs.setInt(_kPricesAt, at);
+    } catch (_) {}
     return data;
+  }
+
+  Future<void> _syncIfStale() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final age = DateTime.now().millisecondsSinceEpoch - (prefs.getInt(_kFetchedAt) ?? 0);
+      final serverAt = await FirestoreService().getPricesUpdatedAtMs();
+      final changed = serverAt != null && serverAt != prefs.getInt(_kPricesAt);
+      if (age < 15 * 60 * 1000 && !changed) return;
+      final data = await _fetchCatalog();
+      if (mounted) setState(() => _future = Future.value(data));
+    } catch (_) {}
   }
 
   Future<void> _refreshProducts() async {
@@ -63,9 +101,7 @@ class _ProductsGridState extends State<ProductsGrid> with SingleTickerProviderSt
         });
       }
     } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تعذر تحديث المخزون: $error')));
-      }
+      showAppMessage('تعذر تحديث المخزون: $error');
     } finally {
       if (mounted) {
         setState(() {

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide SnackBar, ScaffoldMessenger;
 
 import '../models/nav_item_data.dart';
 import '../theme/app_colors.dart';

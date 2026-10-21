@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide SnackBar, ScaffoldMessenger;
 import 'package:flutter/services.dart';
 import 'package:liveprice/services/pricing.dart';
 

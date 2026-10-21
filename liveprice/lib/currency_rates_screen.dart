@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide SnackBar, ScaffoldMessenger;
 import 'package:liveprice/theme/app_colors.dart';
 import 'package:http/http.dart' as http;
 

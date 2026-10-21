@@ -2,7 +2,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide SnackBar, ScaffoldMessenger;
+import 'package:liveprice/widgets/app_message.dart';
 import 'package:liveprice/services/auth_service.dart';
 import 'package:liveprice/theme/app_colors.dart';
 import 'package:liveprice/services/firestore_service.dart';
@@ -102,11 +103,11 @@ class _AdminPriceUploadScreenState extends State<AdminPriceUploadScreen> {
       await FirestoreService().uploadProductsBatch(normalized);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم رفع ${normalized.length} عنصر بنجاح')));
+        showAppMessage('تم رفع ${normalized.length} عنصر بنجاح');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل الرفع: $e')));
+        showAppMessage('فشل الرفع: $e');
       }
     } finally {
       if (mounted) setState(() => _uploading = false);

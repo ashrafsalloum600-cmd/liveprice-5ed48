@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:liveprice/services/staff_session.dart';
 
 class LegacyInventoryMigrationResult {
   const LegacyInventoryMigrationResult({required this.migratedQuantities, required this.conflicts});

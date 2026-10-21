@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide SnackBar, ScaffoldMessenger;
+import 'package:liveprice/widgets/app_message.dart';
 import 'package:liveprice/services/pricing.dart';
 import 'package:liveprice/theme/app_colors.dart';
 
@@ -19,7 +20,7 @@ class _AdminRateWidgetState extends State<AdminRateWidget> {
     final value = double.tryParse(raw);
     if (value == null || value <= 0) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('أدخل سعر صرف صحيح أكبر من صفر')));
+        showAppMessage('أدخل سعر صرف صحيح أكبر من صفر');
       }
       return;
     }
@@ -34,12 +35,12 @@ class _AdminRateWidgetState extends State<AdminRateWidget> {
       }, SetOptions(merge: true));
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم حفظ سعر الصرف')));
+        showAppMessage('تم حفظ سعر الصرف');
       }
       _controller.clear();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل الحفظ: $e')));
+        showAppMessage('فشل الحفظ: $e');
       }
     } finally {
       if (mounted) setState(() => _saving = false);

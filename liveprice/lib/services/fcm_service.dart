@@ -1,7 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide SnackBar, ScaffoldMessenger;
 import 'package:liveprice/firebase_options.dart';
 import 'package:liveprice/screens/notifications_screen.dart';
 import 'package:liveprice/services/notification_center.dart';

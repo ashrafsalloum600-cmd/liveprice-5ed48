@@ -24,6 +24,33 @@ class FirestoreService {
     return snapshot.docs.map(ProductModel.fromFirestore).toList();
   }
 
+  // من الكاش المحلي فقط (مجاني وفوري)، فاضية إذا ما في كاش
+  Future<List<ProductModel>> getPublicProductsFromCache() async {
+    try {
+      final snapshot = await _db.collection('products_public').get(const GetOptions(source: Source.cache));
+      return snapshot.docs.map(ProductModel.fromFirestore).toList();
+    } catch (_) {
+      return <ProductModel>[];
+    }
+  }
+
+  // من السيرفر مباشرة (قراءات مدفوعة)
+  Future<List<ProductModel>> getPublicProductsFromServer() async {
+    final snapshot = await _db.collection('products_public').get(const GetOptions(source: Source.server));
+    return snapshot.docs.map(ProductModel.fromFirestore).toList();
+  }
+
+  // قراءة وحدة: آخر وقت تحديث أسعار
+  Future<int?> getPricesUpdatedAtMs() async {
+    try {
+      final doc = await _db.doc('settings/pricing').get(const GetOptions(source: Source.server));
+      final value = doc.data()?['pricesUpdatedAt'];
+      return value is Timestamp ? value.millisecondsSinceEpoch : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<int> publishCatalog() async {
     final snapshot = await _db.collection(_collection).get(const GetOptions(source: Source.server));
     WriteBatch batch = _db.batch();

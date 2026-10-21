@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide SnackBar, ScaffoldMessenger;
+import 'package:liveprice/widgets/app_message.dart';
 import 'package:liveprice/services/audit_service.dart';
 import 'package:liveprice/services/danger_zone.dart';
 import 'package:liveprice/services/staff_session.dart';
@@ -69,7 +70,7 @@ class _WipeDataButtonState extends State<WipeDataButton> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل الحذف: $e')));
+        showAppMessage('فشل الحذف: $e');
       }
     } finally {
       if (mounted) setState(() => _busy = false);

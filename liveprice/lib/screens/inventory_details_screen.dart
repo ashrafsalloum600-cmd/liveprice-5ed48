@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide SnackBar, ScaffoldMessenger;
+import 'package:liveprice/widgets/app_message.dart';
 import 'package:liveprice/models/product_model.dart';
 import 'package:liveprice/services/branch_inventory_store.dart';
 import 'package:liveprice/services/firestore_service.dart';
@@ -70,7 +71,7 @@ class _InventoryDetailsScreenState extends State<InventoryDetailsScreen> {
       await Future.wait([_productsFuture, _inventoryFuture]);
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تعذر تحديث بيانات المخزون: $error')));
+        showAppMessage('تعذر تحديث بيانات المخزون: $error');
       }
     }
   }

@@ -1,7 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide SnackBar, ScaffoldMessenger;
+import 'package:liveprice/widgets/app_message.dart';
 import 'package:liveprice/models/inventory_format.dart';
 import 'package:liveprice/models/product_model.dart';
 import 'package:liveprice/services/firestore_service.dart';
@@ -54,7 +55,7 @@ class _InventoryUploadScreenState extends State<InventoryUploadScreen> {
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+        showAppMessage(error.toString());
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -108,7 +109,7 @@ class _InventoryUploadScreenState extends State<InventoryUploadScreen> {
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+        showAppMessage(error.toString());
       }
     } finally {
       if (mounted) setState(() => _savingMappings = false);
@@ -139,7 +140,7 @@ class _InventoryUploadScreenState extends State<InventoryUploadScreen> {
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+        showAppMessage(error.toString());
       }
     } finally {
       if (mounted) {
