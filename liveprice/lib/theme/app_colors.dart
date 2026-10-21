@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart' hide SnackBar, ScaffoldMessenger;
 
 class AppColors {
-  static const Color bg = Color(0xFF262D40);
-  static const Color surface = Color(0xFF2E3549);
-  static const Color surfaceTop = Color(0xFF363E55);
-  static const Color surfaceHigh = Color(0xFF3C4358);
-  static const Color border = Color(0xFF3F475C);
-  static const Color text = Color(0xFFE6EAF2);
-  static const Color textDim = Color(0xFF9AA3B8);
-  static const Color textFaint = Color(0xFF6F788E);
-  static const Color accent = Color(0xFF3DA5FF);
+  static const Color bg = Color(0xFF000000);
+  static const Color surface = Color(0xFF1C1C1E);
+  static const Color surfaceTop = Color(0xFF1C1C1E);
+  static const Color surfaceHigh = Color(0xFF2C2C2E);
+  static const Color border = Color(0xFF38383A);
+  static const Color text = Color(0xFFFFFFFF);
+  static const Color textDim = Color(0xFFAEAEB2);
+  static const Color accent = Color(0xFF0A84FF);
+  static const Color textFaint = Color(0xFF8E8E93);
 }

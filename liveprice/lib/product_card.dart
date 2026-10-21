@@ -9,6 +9,11 @@ import 'package:liveprice/theme/app_colors.dart';
 import 'package:liveprice/widgets/app_message.dart';
 import 'package:liveprice/widgets/currency_toggle.dart';
 
+const _kRed = Color(0xFFFF453A);
+const _kOrange = Color(0xFFFF9F0A);
+const _kGreen = Color(0xFF30D158);
+const _kGray = Color(0xFF8E8E93);
+
 class ProductsGrid extends StatefulWidget {
   final String searchQuery;
   const ProductsGrid({super.key, this.searchQuery = ''});
@@ -17,38 +22,19 @@ class ProductsGrid extends StatefulWidget {
   State<ProductsGrid> createState() => _ProductsGridState();
 }
 
-class _ProductsGridState extends State<ProductsGrid> with SingleTickerProviderStateMixin {
-  static const int _staggerCount = 12;
-  static const int _staggerMs = 40;
-  static const int _itemMs = 320;
-  static const int _totalMs = _staggerCount * _staggerMs + _itemMs;
-
+class _ProductsGridState extends State<ProductsGrid> {
   static const _kFetchedAt = 'catalog_fetched_at';
   static const _kPricesAt = 'catalog_prices_at';
 
   static _CatalogData? _cache;
   late Future<_CatalogData> _future;
   bool _refreshing = false;
-  late final AnimationController _stagger = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: _totalMs),
-  );
-  late final List<Animation<double>> _anims = List.generate(
-    _staggerCount,
-    (i) => CurvedAnimation(
-      parent: _stagger,
-      curve: Interval(i * _staggerMs / _totalMs, (i * _staggerMs + _itemMs) / _totalMs, curve: Curves.easeOut),
-    ),
-  );
   final Set<String> _favoriteIds = {};
 
   @override
   void initState() {
     super.initState();
     _future = _cache != null ? Future.value(_cache!) : _load();
-    _future.then((_) {
-      if (mounted) _stagger.forward();
-    });
   }
 
   // يعرض الكاش المحلي فوراً، ثم يحدّث بالخلفية عند الحاجة
@@ -89,32 +75,16 @@ class _ProductsGridState extends State<ProductsGrid> with SingleTickerProviderSt
   }
 
   Future<void> _refreshProducts() async {
-    setState(() {
-      _refreshing = true;
-    });
+    setState(() => _refreshing = true);
     try {
       _cache = null;
       final data = await _fetchCatalog();
-      if (mounted) {
-        setState(() {
-          _future = Future.value(data);
-        });
-      }
+      if (mounted) setState(() => _future = Future.value(data));
     } catch (error) {
       showAppMessage('تعذر تحديث المخزون: $error');
     } finally {
-      if (mounted) {
-        setState(() {
-          _refreshing = false;
-        });
-      }
+      if (mounted) setState(() => _refreshing = false);
     }
-  }
-
-  @override
-  void dispose() {
-    _stagger.dispose();
-    super.dispose();
   }
 
   @override
@@ -129,8 +99,7 @@ class _ProductsGridState extends State<ProductsGrid> with SingleTickerProviderSt
           return const Center(child: Text('حدث خطأ بتحميل المنتجات'));
         }
         final q = widget.searchQuery.trim().toLowerCase();
-        final catalog = snapshot.data!;
-        final all = catalog.products;
+        final all = snapshot.data!.products;
         final products = q.isEmpty
             ? all
             : all.where((p) => p.name.toLowerCase().contains(q) || p.id.toLowerCase().contains(q)).toList();
@@ -160,6 +129,7 @@ class _ProductsGridState extends State<ProductsGrid> with SingleTickerProviderSt
             SliverPadding(
               padding: EdgeInsets.fromLTRB(12, 0, 12, 24 + MediaQuery.of(context).padding.bottom),
               sliver: SliverGrid.builder(
+                addAutomaticKeepAlives: false,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
                   mainAxisSpacing: 12,
@@ -169,28 +139,16 @@ class _ProductsGridState extends State<ProductsGrid> with SingleTickerProviderSt
                 itemCount: products.length,
                 itemBuilder: (context, i) {
                   final p = products[i];
-                  Widget card = ProductCard(
+                  return ProductCard(
+                    key: ValueKey(p.id),
                     product: p,
                     isFavorite: _favoriteIds.contains(p.id),
                     onFavoriteToggle: () {
                       setState(() {
-                        if (!_favoriteIds.remove(p.id)) {
-                          _favoriteIds.add(p.id);
-                        }
+                        if (!_favoriteIds.remove(p.id)) _favoriteIds.add(p.id);
                       });
                     },
                   );
-                  if (i < _staggerCount) {
-                    final a = _anims[i];
-                    card = FadeTransition(
-                      opacity: a,
-                      child: SlideTransition(
-                        position: Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero).animate(a),
-                        child: card,
-                      ),
-                    );
-                  }
-                  return card;
                 },
               ),
             ),
@@ -207,7 +165,7 @@ class _CatalogData {
   final List<ProductModel> products;
 }
 
-class ProductCard extends StatefulWidget {
+class ProductCard extends StatelessWidget {
   final ProductModel product;
   final bool isFavorite;
   final VoidCallback onFavoriteToggle;
@@ -215,15 +173,8 @@ class ProductCard extends StatefulWidget {
   const ProductCard({super.key, required this.product, required this.isFavorite, required this.onFavoriteToggle});
 
   @override
-  State<ProductCard> createState() => _ProductCardState();
-}
-
-class _ProductCardState extends State<ProductCard> {
-  bool _hover = false;
-
-  @override
   Widget build(BuildContext context) {
-    final p = widget.product;
+    final p = product;
     final stockLabel = switch (p.stock) {
       'out' => 'نفد',
       'limited' => 'كمية محدودة',
@@ -232,35 +183,19 @@ class _ProductCardState extends State<ProductCard> {
       _ => null,
     };
     final stockColor = switch (p.stock) {
-      'out' => Colors.redAccent,
-      'limited' => Colors.amber,
-      'available' => Colors.greenAccent,
-      'incomplete' => Colors.blueGrey,
+      'out' => _kRed,
+      'limited' => _kOrange,
+      'available' => _kGreen,
+      'incomplete' => _kGray,
       _ => null,
     };
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        curve: Curves.easeOut,
-        transform: Matrix4.translationValues(0, _hover ? -2 : 0, 0),
+    return RepaintBoundary(
+      child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [AppColors.surfaceTop, AppColors.surface],
-          ),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.border),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(_hover ? 110 : 70),
-              blurRadius: _hover ? 20 : 14,
-              offset: Offset(0, _hover ? 10 : 6),
-            ),
-          ],
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border, width: 0.5),
         ),
         child: Directionality(
           textDirection: TextDirection.rtl,
@@ -269,7 +204,7 @@ class _ProductCardState extends State<ProductCard> {
             children: [
               Expanded(
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
@@ -298,7 +233,7 @@ class _ProductCardState extends State<ProductCard> {
                       Positioned(
                         top: 6,
                         left: 6,
-                        child: _HeartButton(isFavorite: widget.isFavorite, onTap: widget.onFavoriteToggle),
+                        child: _HeartButton(isFavorite: isFavorite, onTap: onFavoriteToggle),
                       ),
                       if (stockLabel != null && stockColor != null)
                         Positioned(
@@ -309,8 +244,7 @@ class _ProductCardState extends State<ProductCard> {
                             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                             decoration: BoxDecoration(
                               color: AppColors.bg.withAlpha(220),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: stockColor.withAlpha(150)),
+                              borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               stockLabel,
@@ -340,7 +274,7 @@ class _ProductCardState extends State<ProductCard> {
                         style: const TextStyle(
                           fontSize: 12.5,
                           height: 1.2,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                           color: AppColors.text,
                         ),
                       ),
@@ -353,7 +287,7 @@ class _ProductCardState extends State<ProductCard> {
                         animation: Pricing.instance,
                         builder: (context, _) => Text(
                           Pricing.instance.format(p),
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.accent),
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.accent),
                         ),
                       ),
                     ),
@@ -377,44 +311,24 @@ class _ProductCardState extends State<ProductCard> {
   }
 }
 
-class _HeartButton extends StatefulWidget {
+class _HeartButton extends StatelessWidget {
   final bool isFavorite;
   final VoidCallback onTap;
   const _HeartButton({required this.isFavorite, required this.onTap});
 
   @override
-  State<_HeartButton> createState() => _HeartButtonState();
-}
-
-class _HeartButtonState extends State<_HeartButton> {
-  bool _down = false;
-
-  @override
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTapDown: (_) => setState(() => _down = true),
-      onTapUp: (_) => setState(() => _down = false),
-      onTapCancel: () => setState(() => _down = false),
-      onTap: widget.onTap,
-      child: AnimatedScale(
-        scale: _down ? 0.85 : 1,
-        duration: const Duration(milliseconds: 100),
-        curve: Curves.easeOut,
-        child: Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(color: AppColors.bg.withAlpha(200), shape: BoxShape.circle),
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 250),
-            transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
-            child: Icon(
-              widget.isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-              key: ValueKey(widget.isFavorite),
-              size: 17,
-              color: widget.isFavorite ? Colors.redAccent : AppColors.textDim,
-            ),
-          ),
+      onTap: onTap,
+      child: Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(color: AppColors.bg.withAlpha(200), shape: BoxShape.circle),
+        child: Icon(
+          isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+          size: 17,
+          color: isFavorite ? _kRed : AppColors.textDim,
         ),
       ),
     );
