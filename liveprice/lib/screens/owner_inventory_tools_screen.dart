@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart' hide SnackBar, ScaffoldMessenger;
+import 'package:flutter/material.dart';
 import 'package:liveprice/widgets/app_message.dart';
 import 'package:liveprice/models/product_model.dart';
 import 'package:liveprice/services/audit_service.dart';
@@ -19,7 +19,6 @@ class _OwnerInventoryToolsScreenState extends State<OwnerInventoryToolsScreen> {
   late Future<List<ProductModel>> _productsFuture;
   late Future<Map<String, Map<String, num>>> _quantitiesFuture;
   late Future<List<Map<String, dynamic>>> _auditFuture;
-  bool _migrating = false;
   bool _publishing = false;
 
   @override
@@ -48,7 +47,7 @@ class _OwnerInventoryToolsScreenState extends State<OwnerInventoryToolsScreen> {
     try {
       await Future.wait([_productsFuture, _quantitiesFuture, _auditFuture]);
     } catch (_) {
-      // Each tab displays its own read error and required collection.
+      // كل تبويب يعرض خطأ القراءة الخاص به.
     }
   }
 
@@ -73,52 +72,11 @@ class _OwnerInventoryToolsScreenState extends State<OwnerInventoryToolsScreen> {
     try {
       final count = await FirestoreService().publishCatalog();
       await AuditService.log('publish_catalog', details: {'count': count});
-      if (mounted) {
-        showAppMessage('نُشر الكتالوج العام: $count منتج');
-      }
+      showAppMessage('نُشر الكتالوج العام: $count منتج');
     } catch (error) {
-      if (mounted) {
-        showAppMessage('فشل نشر الكتالوج العام: $error');
-      }
+      showAppMessage('فشل نشر الكتالوج العام: $error');
     } finally {
       if (mounted) setState(() => _publishing = false);
-    }
-  }
-
-  Future<void> _migrateLegacyInventory() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('نقل كميات المخزون القديمة'),
-        content: const Text(
-          'سينسخ النظام قيم q_b1 وq_b2 وq_b3 كما هي إلى مخزن خاص، ثم يزيل الحقول القديمة من المنتجات بعد التحقق. '
-          'القيم المتعارضة ستُترك دون تغيير للمراجعة.',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('إلغاء')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('بدء النقل')),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-    setState(() => _migrating = true);
-    try {
-      final result = await BranchInventoryStore().migrateLegacyProductQuantities();
-      if (!mounted) return;
-      setState(_reload);
-      final conflictSummary = result.conflicts.take(3).join('، ');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'نُقلت ${result.migratedQuantities} كمية. التعارضات: ${result.conflicts.length}'
-            '${conflictSummary.isEmpty ? '' : ' ($conflictSummary)'}',
-          ),
-        ),
-      );
-    } catch (error) {
-      if (mounted) showAppMessage('فشل نقل الكميات: $error');
-    } finally {
-      if (mounted) setState(() => _migrating = false);
     }
   }
 
@@ -135,8 +93,6 @@ class _OwnerInventoryToolsScreenState extends State<OwnerInventoryToolsScreen> {
           ),
           appBar: AppBar(
             title: const Text('أدوات المالك'),
-            backgroundColor: AppColors.bg,
-            foregroundColor: AppColors.text,
             actions: [
               TextButton.icon(
                 onPressed: _publishing ? null : _publishCatalog,
@@ -144,13 +100,6 @@ class _OwnerInventoryToolsScreenState extends State<OwnerInventoryToolsScreen> {
                     ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.public),
                 label: const Text('نشر الكتالوج العام'),
-              ),
-              IconButton(
-                tooltip: 'نقل الكميات القديمة إلى المخزن الخاص',
-                onPressed: _migrating ? null : _migrateLegacyInventory,
-                icon: _migrating
-                    ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.move_down),
               ),
               IconButton(tooltip: 'تحديث', onPressed: _refresh, icon: const Icon(Icons.refresh)),
             ],
@@ -176,7 +125,7 @@ class _OwnerInventoryToolsScreenState extends State<OwnerInventoryToolsScreen> {
                       if (quantitySnapshot.connectionState == ConnectionState.waiting) {
                         return const Center(child: CircularProgressIndicator(color: AppColors.accent));
                       }
-                      if (quantitySnapshot.hasError) return Center(child: Text(_readError('branch_inventory')));
+                      if (quantitySnapshot.hasError) return Center(child: Text(_readError('branch_stock')));
                       return _InventoryReport(
                         products: snapshot.data ?? const [],
                         quantities: quantitySnapshot.data ?? const {},
@@ -195,8 +144,9 @@ class _OwnerInventoryToolsScreenState extends State<OwnerInventoryToolsScreen> {
                   final events = snapshot.data ?? const <Map<String, dynamic>>[];
                   if (events.isEmpty) return const Center(child: Text('لا توجد حركات مسجلة'));
                   return ListView.separated(
+                    addAutomaticKeepAlives: false,
                     itemCount: events.length,
-                    separatorBuilder: (_, _) => const Divider(height: 1, indent: 16, endIndent: 16),
+                    separatorBuilder: (_, _) => const Divider(indent: 16, endIndent: 16),
                     itemBuilder: (context, index) => _AuditEventTile(event: events[index]),
                   );
                 },
@@ -229,25 +179,41 @@ class _InventoryReport extends StatelessWidget {
       }
     }
 
+    final low = products.where((product) {
+      return _branches.keys.any((branchId) => (quantities[branchId]?[product.id] ?? 6) <= 5);
+    }).toList();
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         Text('المنتجات الموجودة: ${products.length}', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
-        const Text('الإجمالي أدناه يجمع الكميات المسجلة فقط؛ القيم الناقصة غير مقدرة.'),
+        const Text(
+          'الإجمالي أدناه يجمع الكميات المسجلة فقط؛ القيم الناقصة غير مقدرة.',
+          style: TextStyle(color: AppColors.textFaint, fontSize: 13),
+        ),
         const SizedBox(height: 12),
-        for (final branch in _branches.entries)
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(branch.value),
-            subtitle: Text('كميات مسجلة لـ ${knownCounts[branch.key]} من ${products.length} منتج'),
-            trailing: Text(totals[branch.key].toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
+        Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16)),
+          child: Column(
+            children: [
+              for (final branch in _branches.entries)
+                ListTile(
+                  title: Text(branch.value),
+                  subtitle: Text('كميات مسجلة لـ ${knownCounts[branch.key]} من ${products.length} منتج'),
+                  trailing: Text(
+                    totals[branch.key].toString(),
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                  ),
+                ),
+            ],
           ),
+        ),
+        const SizedBox(height: 16),
+        Text('أقل من أو يساوي 5 في فرع واحد على الأقل (${low.length})', style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 8),
-        Text('أقل من أو يساوي 5 في فرع واحد على الأقل', style: Theme.of(context).textTheme.titleSmall),
-        for (final product in products.where((product) {
-          return _branches.keys.any((branchId) => (quantities[branchId]?[product.id] ?? 6) <= 5);
-        }))
+        for (final product in low)
           ListTile(
             dense: true,
             contentPadding: EdgeInsets.zero,

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart' hide SnackBar, ScaffoldMessenger;
+import 'package:flutter/material.dart';
 import 'package:liveprice/user_profile_screen.dart';
 import 'package:liveprice/theme/app_colors.dart';
 
@@ -9,8 +9,9 @@ class AppDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Drawer(
       backgroundColor: AppColors.bg,
-      width: 320,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.horizontal(right: Radius.circular(28))),
+      elevation: 0,
+      width: 300,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.horizontal(right: Radius.circular(20))),
       child: SafeArea(child: ProfileContent()),
     );
   }

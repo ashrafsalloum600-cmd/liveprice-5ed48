@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart' hide SnackBar, ScaffoldMessenger;
+import 'package:flutter/material.dart';
 import 'package:liveprice/theme/app_colors.dart';
 import 'package:http/http.dart' as http;
 
@@ -45,14 +45,18 @@ class _CurrencyRatesScreenState extends State<CurrencyRatesScreen> {
       _error = null;
     });
     try {
-      final res = await http.get(Uri.parse('https://api.exchangerate.fun/latest?base=USD'));
+      final res = await http
+          .get(Uri.parse('https://api.exchangerate.fun/latest?base=USD'))
+          .timeout(const Duration(seconds: 10));
       final json = jsonDecode(res.body) as Map<String, dynamic>;
       final rates = (json['rates'] as Map<String, dynamic>).map((k, v) => MapEntry(k, (v as num).toDouble()));
+      if (!mounted) return;
       setState(() {
         _rates = rates;
         _loading = false;
       });
     } catch (_) {
+      if (!mounted) return;
       setState(() {
         _error = 'تعذر تحميل الأسعار';
         _loading = false;
@@ -66,15 +70,16 @@ class _CurrencyRatesScreenState extends State<CurrencyRatesScreen> {
       backgroundColor: AppColors.bg,
       body: SafeArea(
         child: RefreshIndicator(
+          color: AppColors.accent,
           onRefresh: _fetchRates,
           child: _loading
-              ? const Center(child: CircularProgressIndicator(color: AppColors.text))
+              ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
               : _error != null
               ? Center(
-                  child: Text(_error!, style: const TextStyle(color: AppColors.textDim)),
+                  child: Text(_error!, style: const TextStyle(color: AppColors.textFaint)),
                 )
               : ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                   children: [
                     const Align(
                       alignment: Alignment.centerLeft,
@@ -85,15 +90,15 @@ class _CurrencyRatesScreenState extends State<CurrencyRatesScreen> {
                     ),
                     const SizedBox(height: 16),
                     _SyrianPoundHeader(rate: _rates!['SYP']),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: _others.length,
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 3,
-                        mainAxisSpacing: 12,
-                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 10,
+                        crossAxisSpacing: 10,
                         childAspectRatio: 0.95,
                       ),
                       itemBuilder: (context, i) {
@@ -117,20 +122,19 @@ class _SyrianPoundHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [BoxShadow(color: Colors.black.withAlpha(30), blurRadius: 24, offset: const Offset(0, 8))],
-      ),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(20)),
       child: Row(
         children: [
           Container(
-            width: 56,
-            height: 56,
+            width: 52,
+            height: 52,
             alignment: Alignment.center,
-            decoration: BoxDecoration(color: AppColors.surfaceHigh, borderRadius: BorderRadius.circular(18)),
-            child: const Text('SYP', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+            decoration: BoxDecoration(color: AppColors.surfaceHigh, borderRadius: BorderRadius.circular(14)),
+            child: const Text(
+              'SYP',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.text),
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -139,14 +143,14 @@ class _SyrianPoundHeader extends StatelessWidget {
               children: [
                 const Text(
                   'الليرة السورية',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textDim),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: AppColors.textDim),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   rate != null ? '${rate!.toStringAsFixed(2)} ل.س' : '—',
-                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.text),
+                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: AppColors.text),
                 ),
-                const Text('مقابل 1 دولار أمريكي', style: TextStyle(fontSize: 12, color: AppColors.textDim)),
+                const Text('مقابل 1 دولار أمريكي', style: TextStyle(fontSize: 12, color: AppColors.textFaint)),
               ],
             ),
           ),
@@ -167,11 +171,7 @@ class _CurrencySquare extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withAlpha(20), blurRadius: 16, offset: const Offset(0, 6))],
-      ),
+      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -184,7 +184,7 @@ class _CurrencySquare extends StatelessWidget {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 11, color: AppColors.textDim),
+            style: const TextStyle(fontSize: 11, color: AppColors.textFaint),
           ),
           Text(
             rate != null ? rate!.toStringAsFixed(3) : '—',

@@ -1,9 +1,11 @@
-import 'package:flutter/material.dart' hide SnackBar, ScaffoldMessenger;
+import 'package:flutter/material.dart';
 import 'package:liveprice/widgets/app_message.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:liveprice/services/auth_service.dart';
 import 'package:liveprice/widgets/social_sign_in_buttons.dart';
 import 'package:liveprice/theme/app_colors.dart';
+
+const _kRed = Color(0xFFFF453A);
 
 class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({super.key});
@@ -25,6 +27,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         appBar: AppBar(
           backgroundColor: UserProfileScreen.bg,
           elevation: 0,
+          scrolledUnderElevation: 0,
           centerTitle: true,
           title: const Text(
             'الملف الشخصي',
@@ -54,15 +57,9 @@ class _ProfileContentState extends State<ProfileContent> {
     try {
       await _authService.signInWithGoogle();
     } on FirebaseAuthException catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(error.message ?? 'تعذر تسجيل الدخول باستخدام Google')));
-      }
+      showAppMessage(error.message ?? 'تعذر تسجيل الدخول باستخدام Google');
     } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))));
-      }
+      showAppMessage(error.toString().replaceFirst('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _isSigningIn = false);
     }
@@ -72,14 +69,9 @@ class _ProfileContentState extends State<ProfileContent> {
     try {
       await _authService.signOut();
     } on FirebaseAuthException catch (error) {
-      if (mounted) {
-        showAppMessage(error.message ?? 'تعذر تسجيل الخروج');
-      }
+      showAppMessage(error.message ?? 'تعذر تسجيل الخروج');
     } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))));
-      }
+      showAppMessage(error.toString().replaceFirst('Exception: ', ''));
     }
   }
 
@@ -105,9 +97,8 @@ class _ProfileContentState extends State<ProfileContent> {
                 title: 'الحساب الشخصي',
                 items: [
                   _ProfileItem(icon: Icons.person_outline_rounded, label: 'المعلومات الشخصية'),
-                  _ProfileItem(icon: Icons.shopping_bag_outlined, label: 'طلباتي'),
+
                   _ProfileItem(icon: Icons.favorite_border_rounded, label: 'المفضلة'),
-                  _ProfileItem(icon: Icons.location_on_outlined, label: 'العناوين المسجلة'),
                 ],
               ),
               const SizedBox(height: 16),
@@ -126,7 +117,7 @@ class _ProfileContentState extends State<ProfileContent> {
                   _ProfileItem(
                     icon: Icons.logout_rounded,
                     label: 'تسجيل الخروج',
-                    color: Colors.redAccent,
+                    color: _kRed,
                     onTap: user == null ? null : _signOut,
                   ),
                 ],
@@ -148,11 +139,7 @@ class _ProfileHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withAlpha(15), blurRadius: 16, offset: const Offset(0, 6))],
-      ),
+      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16)),
       child: Column(
         children: [
           Stack(
@@ -189,7 +176,7 @@ class _ProfileHeader extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             user?.email ?? '+963 999 999 999 · user@email.com',
-            style: const TextStyle(fontFamily: 'Cairo', fontSize: 13, color: AppColors.textDim),
+            style: const TextStyle(fontFamily: 'Cairo', fontSize: 13, color: AppColors.textFaint),
           ),
         ],
       ),
@@ -217,21 +204,19 @@ class _SectionCard extends StatelessWidget {
                 fontFamily: 'Cairo',
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textDim,
+                color: AppColors.textFaint,
               ),
             ),
           ),
         Container(
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: Colors.black.withAlpha(12), blurRadius: 14, offset: const Offset(0, 4))],
-          ),
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16)),
           child: Column(
             children: [
               for (int i = 0; i < items.length; i++) ...[
                 items[i],
-                if (i != items.length - 1) const Divider(height: 1, indent: 56, endIndent: 16, color: AppColors.border),
+                if (i != items.length - 1)
+                  const Divider(height: 0.5, thickness: 0.5, indent: 52, endIndent: 0, color: AppColors.border),
               ],
             ],
           ),
@@ -253,7 +238,6 @@ class _ProfileItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap ?? () {},
-      borderRadius: BorderRadius.circular(16),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
@@ -271,7 +255,7 @@ class _ProfileItem extends StatelessWidget {
                 ),
               ),
             ),
-            if (color == null) const Icon(Icons.chevron_left_rounded, size: 22, color: AppColors.textDim),
+            if (color == null) const Icon(Icons.chevron_left_rounded, size: 22, color: AppColors.textFaint),
           ],
         ),
       ),

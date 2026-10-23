@@ -1,7 +1,7 @@
 import 'dart:ui' show PointerDeviceKind;
 
-import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder, CupertinoScrollBehavior;
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder, CupertinoScrollBehavior;
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -75,6 +75,21 @@ class MyApp extends StatelessWidget {
         colorSchemeSeed: AppColors.accent,
         splashFactory: NoSplash.splashFactory,
         highlightColor: Colors.transparent,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: AppColors.bg,
+          foregroundColor: AppColors.text,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          surfaceTintColor: Colors.transparent,
+          centerTitle: true,
+          titleTextStyle: TextStyle(color: AppColors.text, fontSize: 17, fontWeight: FontWeight.w600),
+        ),
+        dialogTheme: DialogThemeData(
+          backgroundColor: AppColors.surface,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+        dividerTheme: const DividerThemeData(color: AppColors.border, thickness: 0.5, space: 1),
         pageTransitionsTheme: const PageTransitionsTheme(
           builders: {
             TargetPlatform.android: CupertinoPageTransitionsBuilder(),

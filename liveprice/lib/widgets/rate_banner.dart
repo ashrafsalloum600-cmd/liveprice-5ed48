@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart' hide SnackBar, ScaffoldMessenger;
+import 'package:flutter/material.dart';
 import 'package:liveprice/services/pricing.dart';
 import 'package:liveprice/theme/app_colors.dart';
 
@@ -13,14 +13,11 @@ class RateBanner extends StatefulWidget {
   State<RateBanner> createState() => _RateBannerState();
 }
 
-class _RateBannerState extends State<RateBanner> with SingleTickerProviderStateMixin {
-  static const _label = TextStyle(fontSize: 13, color: AppColors.textDim, fontWeight: FontWeight.w600);
-  static const _red = Color(0xFFFF3B30);
-  static const _green = Color(0xFF34C759);
+class _RateBannerState extends State<RateBanner> {
+  static const _label = TextStyle(fontSize: 13, color: AppColors.textDim, fontWeight: FontWeight.w500);
+  static const _red = Color(0xFFFF453A);
+  static const _green = Color(0xFF30D158);
 
-  late final AnimationController _pulse = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400))
-    ..repeat();
-  late final Animation<double> _curve = CurvedAnimation(parent: _pulse, curve: Curves.easeOut);
   Timer? _timer;
   int _tick = 0;
 
@@ -29,11 +26,9 @@ class _RateBannerState extends State<RateBanner> with SingleTickerProviderStateM
   @override
   void initState() {
     super.initState();
-    Pricing.instance.addListener(_onPricingChanged);
+    Pricing.instance.addListener(_syncTimer);
     _syncTimer();
   }
-
-  void _onPricingChanged() => _syncTimer();
 
   void _syncTimer() {
     if (Pricing.instance.lastUpdatedAt == null) {
@@ -51,9 +46,8 @@ class _RateBannerState extends State<RateBanner> with SingleTickerProviderStateM
 
   @override
   void dispose() {
-    Pricing.instance.removeListener(_onPricingChanged);
+    Pricing.instance.removeListener(_syncTimer);
     _timer?.cancel();
-    _pulse.dispose();
     super.dispose();
   }
 
@@ -71,33 +65,14 @@ class _RateBannerState extends State<RateBanner> with SingleTickerProviderStateM
     decoration: const BoxDecoration(color: _red, shape: BoxShape.circle),
   );
 
-  Widget _liveDot() {
-    return SizedBox(
-      width: 16,
-      height: 16,
-      child: Stack(
-        alignment: Alignment.center,
-        clipBehavior: Clip.none,
-        children: [
-          FadeTransition(
-            opacity: Tween<double>(begin: 0.45, end: 0).animate(_curve),
-            child: ScaleTransition(scale: Tween<double>(begin: 1, end: 2.2).animate(_curve), child: _dot()),
-          ),
-          _dot(),
-        ],
-      ),
-    );
-  }
-
   Widget _arrow(bool up, bool down) {
     if (!up && !down) return const SizedBox.shrink(key: ValueKey('none'));
     final color = up ? _green : _red;
-    return Container(
+    return Icon(
+      up ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
       key: ValueKey(up),
-      width: 22,
-      height: 22,
-      decoration: BoxDecoration(color: color.withAlpha(38), shape: BoxShape.circle),
-      child: Icon(up ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded, size: 14, color: color),
+      size: 16,
+      color: color,
     );
   }
 
@@ -121,26 +96,19 @@ class _RateBannerState extends State<RateBanner> with SingleTickerProviderStateM
       key: const ValueKey('rate'),
       mainAxisSize: MainAxisSize.min,
       children: [
-        _liveDot(),
-        const SizedBox(width: 6),
+        _dot(),
+        const SizedBox(width: 8),
         const Text('سعر الصرف :', style: _label),
         const SizedBox(width: 6),
         Text(
           _fmt(rate),
           textDirection: TextDirection.ltr,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.text),
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.text),
         ),
         const SizedBox(width: 6),
         const Text('ل.س', style: _label),
         if (up || down) const SizedBox(width: 6),
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          transitionBuilder: (child, anim) => ScaleTransition(
-            scale: anim,
-            child: FadeTransition(opacity: anim, child: child),
-          ),
-          child: _arrow(up, down),
-        ),
+        _arrow(up, down),
       ],
     );
   }
@@ -156,7 +124,7 @@ class _RateBannerState extends State<RateBanner> with SingleTickerProviderStateM
         const SizedBox(width: 6),
         Text(
           _relativeUpdateTime(updatedAt),
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.text),
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.text),
         ),
       ],
     );
@@ -180,11 +148,7 @@ class _RateBannerState extends State<RateBanner> with SingleTickerProviderStateM
           alignment: Alignment.center,
           decoration: widget.flat
               ? null
-              : BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(40),
-                  boxShadow: [BoxShadow(color: Colors.black.withAlpha(30), blurRadius: 24, offset: const Offset(0, 8))],
-                ),
+              : BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14)),
           child: FittedBox(
             fit: BoxFit.scaleDown,
             child: Directionality(
@@ -192,14 +156,7 @@ class _RateBannerState extends State<RateBanner> with SingleTickerProviderStateM
               child: lastUpdatedAt == null
                   ? _rateContent(rate, up, down)
                   : AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 350),
-                      transitionBuilder: (child, animation) => FadeTransition(
-                        opacity: animation,
-                        child: SlideTransition(
-                          position: Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(animation),
-                          child: child,
-                        ),
-                      ),
+                      duration: const Duration(milliseconds: 250),
                       child: _showRate ? _rateContent(rate, up, down) : _updateContent(lastUpdatedAt),
                     ),
             ),

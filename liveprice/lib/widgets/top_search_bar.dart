@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart' hide SnackBar, ScaffoldMessenger;
+import 'package:flutter/material.dart';
 import 'package:liveprice/services/pricing.dart';
 import 'package:liveprice/widgets/rate_banner.dart';
 import 'package:liveprice/theme/app_colors.dart';
@@ -32,10 +32,10 @@ class _TopSearchBarState extends State<TopSearchBar> {
   }
 
   Widget _iconButton(IconData icon, VoidCallback onTap) {
-    return InkResponse(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      radius: 24,
-      child: SizedBox(width: 44, height: 44, child: Icon(icon, size: 26, color: AppColors.text)),
+      child: SizedBox(width: 44, height: 44, child: Icon(icon, size: 24, color: AppColors.text)),
     );
   }
 
@@ -54,7 +54,7 @@ class _TopSearchBarState extends State<TopSearchBar> {
                 builder: (context, _) => Pricing.instance.usdToSyp == null
                     ? const Text(
                         'My Price',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.text),
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.text),
                       )
                     : const RateBanner(flat: true),
               ),
@@ -70,14 +70,15 @@ class _TopSearchBarState extends State<TopSearchBar> {
     return Row(
       key: const ValueKey('search'),
       children: [
-        InkResponse(
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onTap: _close,
           child: Container(
-            width: 36,
-            height: 36,
+            width: 32,
+            height: 32,
             margin: const EdgeInsets.only(left: 6),
             decoration: const BoxDecoration(color: AppColors.surfaceHigh, shape: BoxShape.circle),
-            child: const Icon(Icons.close_rounded, size: 20, color: AppColors.text),
+            child: const Icon(Icons.close_rounded, size: 18, color: AppColors.text),
           ),
         ),
         Expanded(
@@ -92,7 +93,7 @@ class _TopSearchBarState extends State<TopSearchBar> {
               decoration: const InputDecoration(
                 border: InputBorder.none,
                 hintText: 'ابحث باسم المادة أو رمزها',
-                hintStyle: TextStyle(color: AppColors.textDim),
+                hintStyle: TextStyle(color: AppColors.textFaint),
                 contentPadding: EdgeInsets.symmetric(horizontal: 8),
               ),
             ),
@@ -109,16 +110,11 @@ class _TopSearchBarState extends State<TopSearchBar> {
       textDirection: TextDirection.ltr,
       child: Container(
         width: double.infinity,
-        height: 56,
+        height: 48,
         padding: const EdgeInsets.symmetric(horizontal: 6),
-        decoration: BoxDecoration(
-          color: AppColors.bg,
-          border: Border.all(color: AppColors.border),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [BoxShadow(color: Colors.black.withAlpha(30), blurRadius: 24, offset: const Offset(0, 8))],
-        ),
+        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14)),
         child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 250),
+          duration: const Duration(milliseconds: 150),
           child: _searching ? _searchRow() : _titleRow(),
         ),
       ),
