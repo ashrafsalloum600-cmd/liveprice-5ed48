@@ -28,9 +28,9 @@ Future<void> main() async {
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
+      statusBarIconBrightness: Brightness.dark,
       systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarIconBrightness: Brightness.light,
+      systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -70,7 +70,7 @@ class MyApp extends StatelessWidget {
       scrollBehavior: const _AppScroll(),
       theme: ThemeData(
         useMaterial3: true,
-        brightness: Brightness.dark,
+        brightness: Brightness.light,
         scaffoldBackgroundColor: AppColors.bg,
         colorSchemeSeed: AppColors.accent,
         splashFactory: NoSplash.splashFactory,

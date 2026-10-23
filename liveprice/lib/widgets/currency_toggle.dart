@@ -47,7 +47,7 @@ class CurrencyToggle extends StatelessWidget {
                     child: Container(
                       width: _cell,
                       height: _h - _pad * 2,
-                      decoration: BoxDecoration(color: const Color(0xFF636366), borderRadius: BorderRadius.circular(8)),
+                      decoration: BoxDecoration(color: AppColors.surfaceHigh, borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
                   Row(
