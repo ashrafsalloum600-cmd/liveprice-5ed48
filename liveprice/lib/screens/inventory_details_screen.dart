@@ -1,11 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart' hide SnackBar, ScaffoldMessenger;
+import 'package:flutter/material.dart';
 import 'package:liveprice/widgets/app_message.dart';
 import 'package:liveprice/models/product_model.dart';
 import 'package:liveprice/services/branch_inventory_store.dart';
 import 'package:liveprice/services/firestore_service.dart';
 import 'package:liveprice/services/inventory_parser.dart';
+import 'package:liveprice/services/staff_session.dart';
 import 'package:liveprice/theme/app_colors.dart';
+
+const _kRed = Color(0xFFFF453A);
+const _kOrange = Color(0xFFFF9F0A);
 
 class InventoryDetailsScreen extends StatefulWidget {
   const InventoryDetailsScreen({super.key});
@@ -19,11 +23,22 @@ class _InventoryDetailsScreenState extends State<InventoryDetailsScreen> {
 
   late Future<List<ProductModel>> _productsFuture;
   late Future<_BranchInventoryData> _inventoryFuture;
+  late final List<String> _allowed;
+  late String _branchId;
   String _query = '';
 
   @override
   void initState() {
     super.initState();
+    final profile = StaffSession.instance.profile;
+    final own = profile?.branchId;
+    final isOwner = profile?.isOwner == true;
+    if (!isOwner && own != null && _branchNames.containsKey(own)) {
+      _allowed = [own];
+    } else {
+      _allowed = _branchNames.keys.toList(growable: false);
+    }
+    _branchId = _allowed.first;
     _load();
   }
 
@@ -34,8 +49,7 @@ class _InventoryDetailsScreenState extends State<InventoryDetailsScreen> {
 
   Future<_BranchInventoryData> _loadBranchInventory() async {
     final branchIds = _branchNames.keys.toList(growable: false);
-    final store = BranchInventoryStore();
-    final quantitiesFuture = store.loadAllQuantities();
+    final quantitiesFuture = BranchInventoryStore().loadAllQuantities();
     final metaSnapshots = await Future.wait([
       for (final branchId in branchIds) FirebaseFirestore.instance.collection('inventory_meta').doc(branchId).get(),
     ]);
@@ -48,40 +62,62 @@ class _InventoryDetailsScreenState extends State<InventoryDetailsScreen> {
     return _BranchInventoryData(quantities: quantities, lastUploads: lastUploads);
   }
 
-  static Map<String, num> _totalsByUnit(ProductModel product, _BranchInventoryData inventory) {
-    final totals = <String, num>{};
-    for (final branchId in _branchNames.keys) {
-      final quantity = inventory.quantities[branchId]?[product.id];
-      if (quantity == null) continue;
-      final unit = product.unit;
-      totals.update(unit, (total) => total + quantity, ifAbsent: () => quantity);
-    }
-    return totals;
-  }
-
-  static String _totalLabel(ProductModel product, _BranchInventoryData inventory) {
-    final totals = _totalsByUnit(product, inventory);
-    if (totals.isEmpty) return 'الكميات غير مسجلة';
-    return totals.entries.map((entry) => 'الإجمالي: ${entry.value} ${entry.key}'.trim()).join(' • ');
-  }
-
   Future<void> _refresh() async {
     setState(_load);
     try {
       await Future.wait([_productsFuture, _inventoryFuture]);
     } catch (error) {
-      if (mounted) {
-        showAppMessage('تعذر تحديث بيانات المخزون: $error');
-      }
+      showAppMessage('تعذر تحديث بيانات المخزون: $error');
     }
   }
 
-  void _showProductDetails(ProductModel product, _BranchInventoryData inventory) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) => _ProductInventorySheet(product: product, branchNames: _branchNames, inventory: inventory),
+  static String _fmt(num n) => n == n.roundToDouble() ? n.toInt().toString() : n.toString();
+
+  static String _formatDate(DateTime? date) {
+    if (date == null) return 'غير متاح';
+    final l = date.toLocal();
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${l.year}-${two(l.month)}-${two(l.day)} ${two(l.hour)}:${two(l.minute)}';
+  }
+
+  Widget _branchPicker() {
+    if (_allowed.length == 1) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+        child: Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: Text(
+            _branchNames[_branchId] ?? _branchId,
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.text),
+          ),
+        ),
+      );
+    }
+    return SizedBox(
+      height: 44,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: [
+          for (final id in _allowed)
+            Padding(
+              padding: const EdgeInsetsDirectional.only(end: 8),
+              child: ChoiceChip(
+                label: Text(_branchNames[id] ?? id),
+                selected: _branchId == id,
+                onSelected: (_) => setState(() => _branchId = id),
+                showCheckmark: false,
+                selectedColor: AppColors.accent,
+                backgroundColor: AppColors.surface,
+                side: BorderSide.none,
+                labelStyle: TextStyle(
+                  color: _branchId == id ? Colors.white : AppColors.text,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -92,25 +128,29 @@ class _InventoryDetailsScreenState extends State<InventoryDetailsScreen> {
       child: Scaffold(
         backgroundColor: AppColors.bg,
         appBar: AppBar(
-          title: const Text('تفاصيل مخزون الفروع'),
-          backgroundColor: AppColors.bg,
-          foregroundColor: AppColors.text,
+          title: const Text('مخزون الفرع'),
           actions: [IconButton(tooltip: 'تحديث المخزون', onPressed: _refresh, icon: const Icon(Icons.refresh))],
         ),
         body: SafeArea(
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
                 child: TextField(
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.search),
+                  style: const TextStyle(color: AppColors.text),
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.search, color: AppColors.textFaint),
                     hintText: 'ابحث باسم المنتج أو رمزه',
-                    border: OutlineInputBorder(),
+                    hintStyle: const TextStyle(color: AppColors.textFaint),
+                    filled: true,
+                    fillColor: AppColors.surface,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                   ),
                   onChanged: (value) => setState(() => _query = value),
                 ),
               ),
+              _branchPicker(),
               Expanded(
                 child: FutureBuilder<List<ProductModel>>(
                   future: _productsFuture,
@@ -121,15 +161,6 @@ class _InventoryDetailsScreenState extends State<InventoryDetailsScreen> {
                     if (snapshot.hasError) {
                       return const Center(child: Text('تعذر تحميل المنتجات أو ليس لديك صلاحية القراءة'));
                     }
-                    final normalizedQuery = normalizeName(_query).toLowerCase();
-                    final products = (snapshot.data ?? const <ProductModel>[])
-                        .where((product) {
-                          return normalizedQuery.isEmpty ||
-                              normalizeName(product.name).toLowerCase().contains(normalizedQuery) ||
-                              product.id.toLowerCase().contains(normalizedQuery);
-                        })
-                        .toList(growable: false);
-                    if (products.isEmpty) return const Center(child: Text('لا توجد منتجات مطابقة'));
                     return FutureBuilder<_BranchInventoryData>(
                       future: _inventoryFuture,
                       builder: (context, inventorySnapshot) {
@@ -140,21 +171,66 @@ class _InventoryDetailsScreenState extends State<InventoryDetailsScreen> {
                           return const Center(child: CircularProgressIndicator(color: AppColors.accent));
                         }
                         final inventory = inventorySnapshot.data!;
-                        return ListView.separated(
-                          itemCount: products.length,
-                          separatorBuilder: (_, _) => const Divider(height: 1, indent: 16, endIndent: 16),
-                          itemBuilder: (context, index) {
-                            final product = products[index];
-                            return ListTile(
-                              title: Text(product.name, style: const TextStyle(color: AppColors.text)),
-                              subtitle: Text(
-                                _totalLabel(product, inventory),
-                                style: const TextStyle(color: AppColors.textDim),
+                        final branchQuantities = inventory.quantities[_branchId] ?? const <String, num>{};
+                        final q = normalizeName(_query).toLowerCase();
+                        final items =
+                            (snapshot.data ?? const <ProductModel>[])
+                                .where((p) => branchQuantities.containsKey(p.id))
+                                .where(
+                                  (p) =>
+                                      q.isEmpty ||
+                                      normalizeName(p.name).toLowerCase().contains(q) ||
+                                      p.id.toLowerCase().contains(q),
+                                )
+                                .toList(growable: false)
+                              ..sort((a, b) => a.name.compareTo(b.name));
+                        return Column(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                              child: Align(
+                                alignment: AlignmentDirectional.centerStart,
+                                child: Text(
+                                  '${items.length} مادة • آخر رفع: ${_formatDate(inventory.lastUploads[_branchId])}',
+                                  style: const TextStyle(fontSize: 12, color: AppColors.textFaint),
+                                ),
                               ),
-                              trailing: const Icon(Icons.chevron_left, color: AppColors.textDim),
-                              onTap: () => _showProductDetails(product, inventory),
-                            );
-                          },
+                            ),
+                            Expanded(
+                              child: items.isEmpty
+                                  ? const Center(
+                                      child: Text(
+                                        'لا توجد كميات مسجلة لهذا الفرع',
+                                        style: TextStyle(color: AppColors.textFaint),
+                                      ),
+                                    )
+                                  : ListView.separated(
+                                      addAutomaticKeepAlives: false,
+                                      itemCount: items.length,
+                                      separatorBuilder: (_, _) => const Divider(indent: 16, endIndent: 16),
+                                      itemBuilder: (context, index) {
+                                        final product = items[index];
+                                        final qty = branchQuantities[product.id]!;
+                                        final color = qty <= 0
+                                            ? _kRed
+                                            : qty <= 5
+                                            ? _kOrange
+                                            : AppColors.text;
+                                        return ListTile(
+                                          title: Text(product.name, style: const TextStyle(color: AppColors.text)),
+                                          subtitle: Text(
+                                            product.id,
+                                            style: const TextStyle(fontSize: 12, color: AppColors.textFaint),
+                                          ),
+                                          trailing: Text(
+                                            '${_fmt(qty)} ${product.unit}'.trim(),
+                                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: color),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                            ),
+                          ],
                         );
                       },
                     );
@@ -174,56 +250,4 @@ class _BranchInventoryData {
 
   final Map<String, Map<String, num>> quantities;
   final Map<String, DateTime?> lastUploads;
-}
-
-class _ProductInventorySheet extends StatelessWidget {
-  const _ProductInventorySheet({required this.product, required this.branchNames, required this.inventory});
-
-  final ProductModel product;
-  final Map<String, String> branchNames;
-  final _BranchInventoryData inventory;
-
-  String _formatDate(DateTime? date) {
-    if (date == null) return 'غير مسجل أو غير متاح';
-    final local = date.toLocal();
-    final month = local.month.toString().padLeft(2, '0');
-    final day = local.day.toString().padLeft(2, '0');
-    final hour = local.hour.toString().padLeft(2, '0');
-    final minute = local.minute.toString().padLeft(2, '0');
-    return '${local.year}-$month-$day $hour:$minute';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(product.name, style: Theme.of(context).textTheme.titleLarge),
-            Text('رمز المنتج: ${product.id}', style: const TextStyle(color: AppColors.textDim)),
-            const SizedBox(height: 16),
-            for (final branch in branchNames.entries)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(branch.value),
-                subtitle: Text('آخر رفع: ${_formatDate(inventory.lastUploads[branch.key])}'),
-                trailing: Text(
-                  '${inventory.quantities[branch.key]?[product.id]?.toString() ?? 'غير مسجل'} ${product.unit}',
-                  style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.text),
-                ),
-              ),
-            for (final total in _InventoryDetailsScreenState._totalsByUnit(product, inventory).entries)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text('الإجمالي (${total.key})'),
-                trailing: Text(total.value.toString(), style: const TextStyle(fontWeight: FontWeight.w700)),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
 }

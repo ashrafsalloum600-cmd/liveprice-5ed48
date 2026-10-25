@@ -70,7 +70,11 @@ class _ProductsGridState extends State<ProductsGrid> {
       final changed = serverAt != null && serverAt != prefs.getInt(_kPricesAt);
       if (age < 15 * 60 * 1000 && !changed) return;
       final data = await _fetchCatalog();
-      if (mounted) setState(() => _future = Future.value(data));
+      if (mounted) {
+        setState(() {
+          _future = Future.value(data);
+        });
+      }
     } catch (_) {}
   }
 
@@ -79,7 +83,11 @@ class _ProductsGridState extends State<ProductsGrid> {
     try {
       _cache = null;
       final data = await _fetchCatalog();
-      if (mounted) setState(() => _future = Future.value(data));
+      if (mounted) {
+        setState(() {
+          _future = Future.value(data);
+        });
+      }
     } catch (error) {
       showAppMessage('تعذر تحديث المخزون: $error');
     } finally {
