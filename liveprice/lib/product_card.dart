@@ -1,6 +1,8 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart' show CupertinoSliverRefreshControl, RefreshIndicatorMode;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:liveprice/models/product_model.dart';
 import 'package:liveprice/services/firestore_service.dart';
@@ -29,11 +31,34 @@ class _ProductsGridState extends State<ProductsGrid> {
   static _CatalogData? _cache;
   late Future<_CatalogData> _future;
   bool _refreshing = false;
+  static const _kFavorites = 'favorite_ids';
   final Set<String> _favoriteIds = {};
+
+  Future<void> _loadFavorites() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getStringList(_kFavorites);
+      if (saved != null && mounted) {
+        setState(() {
+          _favoriteIds.addAll(saved);
+        });
+      }
+    } catch (_) {}
+  }
+
+  void _toggleFavorite(String id) {
+    setState(() {
+      if (!_favoriteIds.remove(id)) _favoriteIds.add(id);
+    });
+    SharedPreferences.getInstance()
+        .then((prefs) => prefs.setStringList(_kFavorites, _favoriteIds.toList()))
+        .catchError((_) => false);
+  }
 
   @override
   void initState() {
     super.initState();
+    _loadFavorites();
     _future = _cache != null ? Future.value(_cache!) : _load();
   }
 
@@ -99,9 +124,10 @@ class _ProductsGridState extends State<ProductsGrid> {
   Widget build(BuildContext context) {
     return FutureBuilder<_CatalogData>(
       future: _future,
+      initialData: _cache,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: AppColors.accent));
+        if (!snapshot.hasData && snapshot.connectionState == ConnectionState.waiting) {
+          return const _SkeletonGrid();
         }
         if (snapshot.hasError) {
           return const Center(child: Text('حدث خطأ بتحميل المنتجات'));
@@ -115,7 +141,48 @@ class _ProductsGridState extends State<ProductsGrid> {
           return Center(child: Text(q.isEmpty ? 'لا توجد منتجات حالياً' : 'لا توجد نتائج'));
         }
         return CustomScrollView(
+          physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
           slivers: [
+            CupertinoSliverRefreshControl(
+              refreshTriggerPullDistance: 90,
+              refreshIndicatorExtent: 56,
+              onRefresh: _refreshProducts,
+              builder: (context, mode, pulled, trigger, extent) {
+                final text = switch (mode) {
+                  RefreshIndicatorMode.armed => 'اترك للتحديث',
+                  RefreshIndicatorMode.refresh => 'جارٍ تحديث الأسعار...',
+                  RefreshIndicatorMode.done => 'تم التحديث',
+                  _ => 'اسحب للأسفل لتحديث الأسعار',
+                };
+                return ClipRect(
+                  child: Opacity(
+                    opacity: (pulled / trigger).clamp(0.0, 1.0),
+                    child: Center(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (mode == RefreshIndicatorMode.refresh)
+                            const SizedBox.square(
+                              dimension: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent),
+                            )
+                          else
+                            Icon(
+                              mode == RefreshIndicatorMode.armed
+                                  ? Icons.arrow_upward_rounded
+                                  : Icons.arrow_downward_rounded,
+                              size: 16,
+                              color: AppColors.textFaint,
+                            ),
+                          const SizedBox(width: 8),
+                          Text(text, style: const TextStyle(fontSize: 13, color: AppColors.textFaint)),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
@@ -151,11 +218,7 @@ class _ProductsGridState extends State<ProductsGrid> {
                     key: ValueKey(p.id),
                     product: p,
                     isFavorite: _favoriteIds.contains(p.id),
-                    onFavoriteToggle: () {
-                      setState(() {
-                        if (!_favoriteIds.remove(p.id)) _favoriteIds.add(p.id);
-                      });
-                    },
+                    onFavoriteToggle: () => _toggleFavorite(p.id),
                   );
                 },
               ),
@@ -200,10 +263,12 @@ class ProductCard extends StatelessWidget {
     return RepaintBoundary(
       child: Container(
         padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
+        decoration: ShapeDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border, width: 0.5),
+          shape: ContinuousRectangleBorder(
+            borderRadius: BorderRadius.circular(32),
+            side: const BorderSide(color: AppColors.border, width: 0.5),
+          ),
         ),
         child: Directionality(
           textDirection: TextDirection.rtl,
@@ -239,8 +304,8 @@ class ProductCard extends StatelessWidget {
                               ),
                       ),
                       Positioned(
-                        top: 6,
-                        left: 6,
+                        top: 0,
+                        left: 0,
                         child: _HeartButton(isFavorite: isFavorite, onTap: onFavoriteToggle),
                       ),
                       if (stockLabel != null && stockColor != null)
@@ -319,24 +384,127 @@ class ProductCard extends StatelessWidget {
   }
 }
 
-class _HeartButton extends StatelessWidget {
+class _HeartButton extends StatefulWidget {
   final bool isFavorite;
   final VoidCallback onTap;
   const _HeartButton({required this.isFavorite, required this.onTap});
 
   @override
+  State<_HeartButton> createState() => _HeartButtonState();
+}
+
+class _HeartButtonState extends State<_HeartButton> {
+  bool _down = false;
+  bool _pop = false;
+
+  void _tap() {
+    HapticFeedback.selectionClick();
+    widget.onTap();
+    setState(() => _pop = true);
+    Future<void>.delayed(const Duration(milliseconds: 120), () {
+      if (mounted) setState(() => _pop = false);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: onTap,
+      onTapDown: (_) => setState(() => _down = true),
+      onTapUp: (_) => setState(() => _down = false),
+      onTapCancel: () => setState(() => _down = false),
+      onTap: _tap,
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: AnimatedScale(
+          scale: _down ? 0.85 : (_pop ? 1.25 : 1),
+          duration: Duration(milliseconds: _down ? 60 : 170),
+          curve: Curves.easeOutBack,
+          child: Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(color: AppColors.bg.withAlpha(200), shape: BoxShape.circle),
+            child: Icon(
+              widget.isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+              size: 17,
+              color: widget.isFavorite ? _kRed : AppColors.textDim,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// هيكل تحميل ثابت (بدون حركة) يطابق شكل الشبكة والبطاقات
+class _SkeletonGrid extends StatelessWidget {
+  const _SkeletonGrid();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const SizedBox(height: 56),
+        Expanded(
+          child: GridView.builder(
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 10,
+              childAspectRatio: 0.55,
+            ),
+            itemCount: 12,
+            itemBuilder: (_, _) => const _SkeletonCard(),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SkeletonCard extends StatelessWidget {
+  const _SkeletonCard();
+
+  static Widget _bar(double factor, double height) => FractionallySizedBox(
+    alignment: AlignmentDirectional.centerStart,
+    widthFactor: factor,
+    child: Container(
+      height: height,
+      decoration: BoxDecoration(color: AppColors.surfaceHigh, borderRadius: BorderRadius.circular(5)),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.rtl,
       child: Container(
-        width: 28,
-        height: 28,
-        decoration: BoxDecoration(color: AppColors.bg.withAlpha(200), shape: BoxShape.circle),
-        child: Icon(
-          isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-          size: 17,
-          color: isFavorite ? _kRed : AppColors.textDim,
+        padding: const EdgeInsets.all(8),
+        decoration: ShapeDecoration(
+          color: AppColors.surface,
+          shape: ContinuousRectangleBorder(
+            borderRadius: BorderRadius.circular(32),
+            side: const BorderSide(color: AppColors.border, width: 0.5),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(color: AppColors.surfaceHigh, borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            const SizedBox(height: 10),
+            _bar(0.85, 10),
+            const SizedBox(height: 6),
+            _bar(0.55, 10),
+            const SizedBox(height: 8),
+            _bar(0.45, 14),
+            const SizedBox(height: 16),
+          ],
         ),
       ),
     );

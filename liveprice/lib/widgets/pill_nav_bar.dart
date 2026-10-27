@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/nav_item_data.dart';
 import '../theme/app_colors.dart';
+import '../theme/spring.dart';
 
 class PillNavBar extends StatelessWidget {
   final List<NavItemData> items;
@@ -17,15 +18,18 @@ class PillNavBar extends StatelessWidget {
     this.badgeIndices = const {},
   });
 
-  static const Duration _duration = Duration(milliseconds: 250);
-  static const Curve _curve = Curves.easeOutCubic;
+  static const Duration _duration = Duration(milliseconds: 450);
+  static const Curve _curve = AppSpring();
 
   @override
   Widget build(BuildContext context) {
     return Container(
       height: 56,
       padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(20)),
+      decoration: ShapeDecoration(
+        color: AppColors.surface,
+        shape: ContinuousRectangleBorder(borderRadius: BorderRadius.circular(44)),
+      ),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final double labelSpacing = constraints.maxWidth < 520 ? 4 : 8;
@@ -67,8 +71,7 @@ class _NavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    return Pressable(
       onTap: onTap,
       child: Center(
         child: AnimatedContainer(
@@ -76,9 +79,9 @@ class _NavButton extends StatelessWidget {
           curve: PillNavBar._curve,
           height: 44,
           padding: selected ? const EdgeInsets.symmetric(horizontal: 14) : EdgeInsets.zero,
-          decoration: BoxDecoration(
+          decoration: ShapeDecoration(
             color: selected ? AppColors.surfaceHigh : Colors.transparent,
-            borderRadius: BorderRadius.circular(16),
+            shape: ContinuousRectangleBorder(borderRadius: BorderRadius.circular(34)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,

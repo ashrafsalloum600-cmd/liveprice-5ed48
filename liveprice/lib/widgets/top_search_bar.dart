@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:liveprice/services/pricing.dart';
 import 'package:liveprice/widgets/rate_banner.dart';
 import 'package:liveprice/theme/app_colors.dart';
+import 'package:liveprice/theme/spring.dart';
 
 class TopSearchBar extends StatefulWidget {
   final VoidCallback onMenu;
@@ -32,8 +33,7 @@ class _TopSearchBarState extends State<TopSearchBar> {
   }
 
   Widget _iconButton(IconData icon, VoidCallback onTap) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    return Pressable(
       onTap: onTap,
       child: SizedBox(width: 44, height: 44, child: Icon(icon, size: 24, color: AppColors.text)),
     );
@@ -112,7 +112,10 @@ class _TopSearchBarState extends State<TopSearchBar> {
         width: double.infinity,
         height: 48,
         padding: const EdgeInsets.symmetric(horizontal: 6),
-        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14)),
+        decoration: ShapeDecoration(
+          color: AppColors.surface,
+          shape: ContinuousRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        ),
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 150),
           child: _searching ? _searchRow() : _titleRow(),
