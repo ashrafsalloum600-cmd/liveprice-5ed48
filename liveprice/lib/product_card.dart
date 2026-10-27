@@ -8,6 +8,7 @@ import 'package:liveprice/models/product_model.dart';
 import 'package:liveprice/services/firestore_service.dart';
 import 'package:liveprice/services/pricing.dart';
 import 'package:liveprice/theme/app_colors.dart';
+import 'package:liveprice/theme/spring.dart';
 import 'package:liveprice/widgets/app_message.dart';
 import 'package:liveprice/widgets/currency_toggle.dart';
 
@@ -261,122 +262,126 @@ class ProductCard extends StatelessWidget {
       _ => null,
     };
     return RepaintBoundary(
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: ShapeDecoration(
-          color: AppColors.surface,
-          shape: ContinuousRectangleBorder(
-            borderRadius: BorderRadius.circular(32),
-            side: const BorderSide(color: AppColors.border, width: 0.5),
+      child: Pressable(
+        scale: 0.97,
+        onTap: () => _showProductSheet(context, p),
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: ShapeDecoration(
+            color: AppColors.surface,
+            shape: ContinuousRectangleBorder(
+              borderRadius: BorderRadius.circular(32),
+              side: const BorderSide(color: AppColors.border, width: 0.5),
+            ),
           ),
-        ),
-        child: Directionality(
-          textDirection: TextDirection.rtl,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Container(
-                        color: AppColors.surfaceHigh,
-                        child: p.imageUrl.isEmpty
-                            ? const Icon(Icons.image_outlined, size: 32, color: AppColors.textFaint)
-                            : Image.network(
-                                p.imageUrl,
-                                fit: BoxFit.cover,
-                                cacheWidth: 300,
-                                gaplessPlayback: true,
-                                loadingBuilder: (context, child, progress) {
-                                  if (progress == null) return child;
-                                  return const Center(
-                                    child: SizedBox.square(
-                                      dimension: 18,
-                                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent),
-                                    ),
-                                  );
-                                },
-                                errorBuilder: (_, _, _) =>
-                                    const Icon(Icons.image_outlined, size: 32, color: AppColors.textFaint),
-                              ),
-                      ),
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        child: _HeartButton(isFavorite: isFavorite, onTap: onFavoriteToggle),
-                      ),
-                      if (stockLabel != null && stockColor != null)
+          child: Directionality(
+            textDirection: TextDirection.rtl,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Container(
+                          color: AppColors.surfaceHigh,
+                          child: p.imageUrl.isEmpty
+                              ? const Icon(Icons.image_outlined, size: 32, color: AppColors.textFaint)
+                              : Image.network(
+                                  p.imageUrl,
+                                  fit: BoxFit.cover,
+                                  cacheWidth: 300,
+                                  gaplessPlayback: true,
+                                  loadingBuilder: (context, child, progress) {
+                                    if (progress == null) return child;
+                                    return const Center(
+                                      child: SizedBox.square(
+                                        dimension: 18,
+                                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent),
+                                      ),
+                                    );
+                                  },
+                                  errorBuilder: (_, _, _) =>
+                                      const Icon(Icons.image_outlined, size: 32, color: AppColors.textFaint),
+                                ),
+                        ),
                         Positioned(
-                          bottom: 6,
-                          right: 6,
-                          child: Container(
-                            constraints: const BoxConstraints(maxWidth: 112, minHeight: 22),
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: AppColors.bg.withAlpha(220),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              stockLabel,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(color: stockColor, fontSize: 10, fontWeight: FontWeight.w700),
+                          top: 0,
+                          left: 0,
+                          child: _HeartButton(isFavorite: isFavorite, onTap: onFavoriteToggle),
+                        ),
+                        if (stockLabel != null && stockColor != null)
+                          Positioned(
+                            bottom: 6,
+                            right: 6,
+                            child: Container(
+                              constraints: const BoxConstraints(maxWidth: 112, minHeight: 22),
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppColors.bg.withAlpha(220),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                stockLabel,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(color: stockColor, fontSize: 10, fontWeight: FontWeight.w700),
+                              ),
                             ),
                           ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        height: 30,
+                        child: Text(
+                          p.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            height: 1.2,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.text,
+                          ),
                         ),
+                      ),
+                      const SizedBox(height: 3),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: AlignmentDirectional.centerStart,
+                        child: AnimatedBuilder(
+                          animation: Pricing.instance,
+                          builder: (context, _) => Text(
+                            Pricing.instance.format(p),
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.accent),
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        height: 13,
+                        child: Text(
+                          p.unit.isEmpty ? '' : '/ ${p.unit}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 10.5, color: AppColors.textFaint),
+                        ),
+                      ),
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 6),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      height: 30,
-                      child: Text(
-                        p.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12.5,
-                          height: 1.2,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.text,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: AlignmentDirectional.centerStart,
-                      child: AnimatedBuilder(
-                        animation: Pricing.instance,
-                        builder: (context, _) => Text(
-                          Pricing.instance.format(p),
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.accent),
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      height: 13,
-                      child: Text(
-                        p.unit.isEmpty ? '' : '/ ${p.unit}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 10.5, color: AppColors.textFaint),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -505,6 +510,118 @@ class _SkeletonCard extends StatelessWidget {
             _bar(0.45, 14),
             const SizedBox(height: 16),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+String? _stockLabelOf(String? s) => switch (s) {
+  'out' => 'نفد',
+  'limited' => 'كمية محدودة',
+  'available' => 'متوفر',
+  'incomplete' => 'بيانات جزئية',
+  _ => null,
+};
+
+Color _stockColorOf(String? s) => switch (s) {
+  'out' => _kRed,
+  'limited' => _kOrange,
+  'available' => _kGreen,
+  _ => _kGray,
+};
+
+void _showProductSheet(BuildContext context, ProductModel p) {
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: AppColors.surface,
+    showDragHandle: true,
+    shape: const ContinuousRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(56))),
+    builder: (_) => _ProductSheet(product: p),
+  );
+}
+
+class _ProductSheet extends StatelessWidget {
+  const _ProductSheet({required this.product});
+
+  final ProductModel product;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = product;
+    final label = _stockLabelOf(p.stock);
+    final color = _stockColorOf(p.stock);
+    return SafeArea(
+      child: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  height: 180,
+                  color: AppColors.surfaceHigh,
+                  alignment: Alignment.center,
+                  child: p.imageUrl.isEmpty
+                      ? const Icon(Icons.image_outlined, size: 48, color: AppColors.textFaint)
+                      : Image.network(
+                          p.imageUrl,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: 180,
+                          cacheWidth: 600,
+                          gaplessPlayback: true,
+                          errorBuilder: (_, _, _) =>
+                              const Icon(Icons.image_outlined, size: 48, color: AppColors.textFaint),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                p.name,
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.text),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  AnimatedBuilder(
+                    animation: Pricing.instance,
+                    builder: (context, _) => Text(
+                      Pricing.instance.format(p),
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: AppColors.accent),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  if (p.unit.isNotEmpty)
+                    Text('/ ${p.unit}', style: const TextStyle(fontSize: 14, color: AppColors.textFaint)),
+                ],
+              ),
+              const SizedBox(height: 14),
+              if (label != null)
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: ShapeDecoration(
+                      color: color.withAlpha(30),
+                      shape: ContinuousRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                    ),
+                    child: Text(
+                      label,
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 10),
+              Text('رمز المادة: ${p.id}', style: const TextStyle(fontSize: 12, color: AppColors.textFaint)),
+            ],
+          ),
         ),
       ),
     );
