@@ -29,7 +29,7 @@ class _WipeDataButtonState extends State<WipeDataButton> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'سيُحذف: المنتجات، الكتالوج العام، سجل تغيّر الأسعار، ربط الفروع، وكميات الفروع.\n'
                   'لن يُحذف: الموظفون، سعر الصرف، إعدادات الجرد، وسجل الحركات.\n'
                   'لا يمكن التراجع.',

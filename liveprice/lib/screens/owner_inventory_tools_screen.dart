@@ -116,14 +116,14 @@ class _OwnerInventoryToolsScreenState extends State<OwnerInventoryToolsScreen> {
                 future: _productsFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator(color: AppColors.accent));
+                    return Center(child: CircularProgressIndicator(color: AppColors.accent));
                   }
                   if (snapshot.hasError) return Center(child: Text(_readError('products')));
                   return FutureBuilder<Map<String, Map<String, num>>>(
                     future: _quantitiesFuture,
                     builder: (context, quantitySnapshot) {
                       if (quantitySnapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator(color: AppColors.accent));
+                        return Center(child: CircularProgressIndicator(color: AppColors.accent));
                       }
                       if (quantitySnapshot.hasError) return Center(child: Text(_readError('branch_stock')));
                       return _InventoryReport(
@@ -138,7 +138,7 @@ class _OwnerInventoryToolsScreenState extends State<OwnerInventoryToolsScreen> {
                 future: _auditFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator(color: AppColors.accent));
+                    return Center(child: CircularProgressIndicator(color: AppColors.accent));
                   }
                   if (snapshot.hasError) return Center(child: Text(_readError('audit_logs')));
                   final events = snapshot.data ?? const <Map<String, dynamic>>[];
@@ -188,7 +188,7 @@ class _InventoryReport extends StatelessWidget {
       children: [
         Text('المنتجات الموجودة: ${products.length}', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
-        const Text(
+        Text(
           'الإجمالي أدناه يجمع الكميات المسجلة فقط؛ القيم الناقصة غير مقدرة.',
           style: TextStyle(color: AppColors.textFaint, fontSize: 13),
         ),

@@ -169,20 +169,20 @@ class _InventoryUploadScreenState extends State<InventoryUploadScreen> {
           }
         });
       },
-      title: Text(row.name, style: const TextStyle(color: AppColors.text)),
+      title: Text(row.name, style: TextStyle(color: AppColors.text)),
       subtitle: Text(
         'الرمز: ${row.sourceCode.isEmpty ? 'غير موجود' : row.sourceCode} | الكمية: ${row.qty}',
-        style: const TextStyle(color: AppColors.textDim),
+        style: TextStyle(color: AppColors.textDim),
       ),
       trailing: selected == null
-          ? const Icon(Icons.link, color: AppColors.textDim)
-          : const Icon(Icons.link, color: AppColors.accent),
+          ? Icon(Icons.link, color: AppColors.textDim)
+          : Icon(Icons.link, color: AppColors.accent),
       children: [
         if (selected != null)
           ListTile(
             dense: true,
-            title: Text('الربط المؤقت: ${selected.name}', style: const TextStyle(color: AppColors.text)),
-            subtitle: Text(selected.id, style: const TextStyle(color: AppColors.textDim)),
+            title: Text('الربط المؤقت: ${selected.name}', style: TextStyle(color: AppColors.text)),
+            subtitle: Text(selected.id, style: TextStyle(color: AppColors.textDim)),
             trailing: IconButton(
               tooltip: 'إزالة الربط',
               onPressed: () => setState(() => _matches.remove(row.rowNumber)),
@@ -192,10 +192,10 @@ class _InventoryUploadScreenState extends State<InventoryUploadScreen> {
         for (final suggestion in suggestions)
           ListTile(
             dense: true,
-            title: Text(suggestion.product.name, style: const TextStyle(color: AppColors.text)),
+            title: Text(suggestion.product.name, style: TextStyle(color: AppColors.text)),
             subtitle: Text(
               '${suggestion.score}% تشابه | ${suggestion.product.id}',
-              style: const TextStyle(color: AppColors.textDim),
+              style: TextStyle(color: AppColors.textDim),
             ),
             trailing: IconButton(
               tooltip: 'ربط بهذا المنتج',
@@ -264,22 +264,22 @@ class _InventoryUploadScreenState extends State<InventoryUploadScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('الصفوف الصالحة: ${rows.length}', style: const TextStyle(color: AppColors.text)),
+                            Text('الصفوف الصالحة: ${rows.length}', style: TextStyle(color: AppColors.text)),
                             Text(
                               'المربوط: $matchedCount | بانتظار الربط: ${rows.length - matchedCount}',
-                              style: const TextStyle(color: AppColors.text),
+                              style: TextStyle(color: AppColors.text),
                             ),
                             Text(
                               'الأصفار: ${rows.where((row) => row.qty == 0).length}',
-                              style: const TextStyle(color: AppColors.text),
+                              style: TextStyle(color: AppColors.text),
                             ),
                             Text(
                               'الكميات السالبة: ${rows.where((row) => row.qty < 0).length}',
-                              style: const TextStyle(color: AppColors.text),
+                              style: TextStyle(color: AppColors.text),
                             ),
                             Text(
                               'المشاكل: أسماء ${issueCounts['name']}، كميات ${issueCounts['qty']}، تكرار ${issueCounts['duplicate']}',
-                              style: const TextStyle(color: AppColors.text),
+                              style: TextStyle(color: AppColors.text),
                             ),
                             Align(
                               alignment: Alignment.centerRight,
@@ -307,7 +307,7 @@ class _InventoryUploadScreenState extends State<InventoryUploadScreen> {
                           style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.text),
                         ),
                         if (issues.isEmpty)
-                          const Text('لا توجد مشاكل', style: TextStyle(color: AppColors.textDim))
+                          Text('لا توجد مشاكل', style: TextStyle(color: AppColors.textDim))
                         else
                           for (final issue in issues.take(20))
                             ListTile(
@@ -315,9 +315,9 @@ class _InventoryUploadScreenState extends State<InventoryUploadScreen> {
                               contentPadding: EdgeInsets.zero,
                               title: Text(
                                 'صف ${issue.rowNumber}: ${issue.message}',
-                                style: const TextStyle(color: AppColors.text),
+                                style: TextStyle(color: AppColors.text),
                               ),
-                              trailing: Text(issue.type, style: const TextStyle(color: AppColors.textDim)),
+                              trailing: Text(issue.type, style: TextStyle(color: AppColors.textDim)),
                             ),
                       ],
                     );

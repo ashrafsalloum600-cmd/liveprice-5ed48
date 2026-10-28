@@ -57,7 +57,7 @@ class BranchInventoryStore {
   static String publicStatus(Map<String, num> quantitiesByBranch) {
     final uploaded = branchIds.where(quantitiesByBranch.containsKey).toList();
     if (uploaded.isEmpty) return 'incomplete';
-    final total = uploaded.fold<num>(0, (sum, branchId) => sum + quantitiesByBranch[branchId]!);
+    final total = uploaded.fold<num>(0, (total, branchId) => total + quantitiesByBranch[branchId]!);
     if (total <= 0) return 'out';
     if (total <= 5) return 'limited';
     return 'available';

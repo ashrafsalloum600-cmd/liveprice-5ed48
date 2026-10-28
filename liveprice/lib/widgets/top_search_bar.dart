@@ -52,7 +52,7 @@ class _TopSearchBarState extends State<TopSearchBar> {
               child: AnimatedBuilder(
                 animation: Pricing.instance,
                 builder: (context, _) => Pricing.instance.usdToSyp == null
-                    ? const Text(
+                    ? Text(
                         'My Price',
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.text),
                       )
@@ -77,8 +77,8 @@ class _TopSearchBarState extends State<TopSearchBar> {
             width: 32,
             height: 32,
             margin: const EdgeInsets.only(left: 6),
-            decoration: const BoxDecoration(color: AppColors.surfaceHigh, shape: BoxShape.circle),
-            child: const Icon(Icons.close_rounded, size: 18, color: AppColors.text),
+            decoration: BoxDecoration(color: AppColors.surfaceHigh, shape: BoxShape.circle),
+            child: Icon(Icons.close_rounded, size: 18, color: AppColors.text),
           ),
         ),
         Expanded(
@@ -89,8 +89,8 @@ class _TopSearchBarState extends State<TopSearchBar> {
               autofocus: true,
               textAlign: TextAlign.center,
               onChanged: widget.onChanged,
-              style: const TextStyle(fontSize: 16, color: AppColors.text),
-              decoration: const InputDecoration(
+              style: TextStyle(fontSize: 16, color: AppColors.text),
+              decoration: InputDecoration(
                 border: InputBorder.none,
                 hintText: 'ابحث باسم المادة أو رمزها',
                 hintStyle: TextStyle(color: AppColors.textFaint),

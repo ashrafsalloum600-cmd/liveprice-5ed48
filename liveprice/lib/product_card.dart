@@ -11,6 +11,7 @@ import 'package:liveprice/theme/app_colors.dart';
 import 'package:liveprice/theme/spring.dart';
 import 'package:liveprice/widgets/app_message.dart';
 import 'package:liveprice/widgets/currency_toggle.dart';
+import 'package:liveprice/widgets/theme_toggle_button.dart';
 
 const _kRed = Color(0xFFFF453A);
 const _kOrange = Color(0xFFFF9F0A);
@@ -31,7 +32,6 @@ class _ProductsGridState extends State<ProductsGrid> {
 
   static _CatalogData? _cache;
   late Future<_CatalogData> _future;
-  bool _refreshing = false;
   static const _kFavorites = 'favorite_ids';
   final Set<String> _favoriteIds = {};
 
@@ -105,7 +105,6 @@ class _ProductsGridState extends State<ProductsGrid> {
   }
 
   Future<void> _refreshProducts() async {
-    setState(() => _refreshing = true);
     try {
       _cache = null;
       final data = await _fetchCatalog();
@@ -116,8 +115,6 @@ class _ProductsGridState extends State<ProductsGrid> {
       }
     } catch (error) {
       showAppMessage('تعذر تحديث المخزون: $error');
-    } finally {
-      if (mounted) setState(() => _refreshing = false);
     }
   }
 
@@ -163,7 +160,7 @@ class _ProductsGridState extends State<ProductsGrid> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           if (mode == RefreshIndicatorMode.refresh)
-                            const SizedBox.square(
+                            SizedBox.square(
                               dimension: 14,
                               child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent),
                             )
@@ -176,7 +173,7 @@ class _ProductsGridState extends State<ProductsGrid> {
                               color: AppColors.textFaint,
                             ),
                           const SizedBox(width: 8),
-                          Text(text, style: const TextStyle(fontSize: 13, color: AppColors.textFaint)),
+                          Text(text, style: TextStyle(fontSize: 13, color: AppColors.textFaint)),
                         ],
                       ),
                     ),
@@ -187,19 +184,7 @@ class _ProductsGridState extends State<ProductsGrid> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-                child: Row(
-                  children: [
-                    const CurrencyToggle(),
-                    const Spacer(),
-                    IconButton(
-                      tooltip: 'تحديث الأسعار والمخزون',
-                      onPressed: _refreshing ? null : _refreshProducts,
-                      icon: _refreshing
-                          ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Icon(Icons.refresh),
-                    ),
-                  ],
-                ),
+                child: Row(children: [const CurrencyToggle(), const Spacer(), const ThemeToggleButton()]),
               ),
             ),
             SliverPadding(
@@ -271,7 +256,7 @@ class ProductCard extends StatelessWidget {
             color: AppColors.surface,
             shape: ContinuousRectangleBorder(
               borderRadius: BorderRadius.circular(32),
-              side: const BorderSide(color: AppColors.border, width: 0.5),
+              side: BorderSide(color: AppColors.border, width: 0.5),
             ),
           ),
           child: Directionality(
@@ -292,7 +277,7 @@ class ProductCard extends StatelessWidget {
                             child: Container(
                               color: AppColors.surfaceHigh,
                               child: p.imageUrl.isEmpty
-                                  ? const Icon(Icons.image_outlined, size: 32, color: AppColors.textFaint)
+                                  ? Icon(Icons.image_outlined, size: 32, color: AppColors.textFaint)
                                   : Image.network(
                                       p.imageUrl,
                                       fit: BoxFit.cover,
@@ -300,7 +285,7 @@ class ProductCard extends StatelessWidget {
                                       gaplessPlayback: true,
                                       loadingBuilder: (context, child, progress) {
                                         if (progress == null) return child;
-                                        return const Center(
+                                        return Center(
                                           child: SizedBox.square(
                                             dimension: 18,
                                             child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent),
@@ -308,7 +293,7 @@ class ProductCard extends StatelessWidget {
                                         );
                                       },
                                       errorBuilder: (_, _, _) =>
-                                          const Icon(Icons.image_outlined, size: 32, color: AppColors.textFaint),
+                                          Icon(Icons.image_outlined, size: 32, color: AppColors.textFaint),
                                     ),
                             ),
                           ),
@@ -354,7 +339,7 @@ class ProductCard extends StatelessWidget {
                           p.name,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12.5,
                             height: 1.2,
                             fontWeight: FontWeight.w600,
@@ -370,7 +355,7 @@ class ProductCard extends StatelessWidget {
                           animation: Pricing.instance,
                           builder: (context, _) => Text(
                             Pricing.instance.format(p),
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.accent),
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.accent),
                           ),
                         ),
                       ),
@@ -380,7 +365,7 @@ class ProductCard extends StatelessWidget {
                           p.unit.isEmpty ? '' : '/ ${p.unit}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 10.5, color: AppColors.textFaint),
+                          style: TextStyle(fontSize: 10.5, color: AppColors.textFaint),
                         ),
                       ),
                     ],
@@ -497,7 +482,7 @@ class _SkeletonCard extends StatelessWidget {
           color: AppColors.surface,
           shape: ContinuousRectangleBorder(
             borderRadius: BorderRadius.circular(32),
-            side: const BorderSide(color: AppColors.border, width: 0.5),
+            side: BorderSide(color: AppColors.border, width: 0.5),
           ),
         ),
         child: Column(
@@ -591,7 +576,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
     padding: const EdgeInsets.symmetric(vertical: 12),
     child: Row(
       children: [
-        Text(label, style: const TextStyle(fontSize: 14, color: AppColors.textFaint)),
+        Text(label, style: TextStyle(fontSize: 14, color: AppColors.textFaint)),
         const Spacer(),
         Text(
           value,
@@ -630,7 +615,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                         color: AppColors.surfaceHigh,
                         alignment: Alignment.center,
                         child: p.imageUrl.isEmpty
-                            ? const Icon(Icons.image_outlined, size: 64, color: AppColors.textFaint)
+                            ? Icon(Icons.image_outlined, size: 64, color: AppColors.textFaint)
                             : Image.network(
                                 p.imageUrl,
                                 fit: BoxFit.cover,
@@ -639,7 +624,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                                 cacheWidth: 900,
                                 gaplessPlayback: true,
                                 errorBuilder: (_, _, _) =>
-                                    const Icon(Icons.image_outlined, size: 64, color: AppColors.textFaint),
+                                    Icon(Icons.image_outlined, size: 64, color: AppColors.textFaint),
                               ),
                       ),
                     ),
@@ -652,12 +637,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                     children: [
                       Text(
                         p.name,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          height: 1.3,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.text,
-                        ),
+                        style: TextStyle(fontSize: 24, height: 1.3, fontWeight: FontWeight.w800, color: AppColors.text),
                       ),
                       const SizedBox(height: 10),
                       Row(
@@ -668,16 +648,12 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                             animation: Pricing.instance,
                             builder: (context, _) => Text(
                               Pricing.instance.format(p),
-                              style: const TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.accent,
-                              ),
+                              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.accent),
                             ),
                           ),
                           const SizedBox(width: 8),
                           if (p.unit.isNotEmpty)
-                            Text('/ ${p.unit}', style: const TextStyle(fontSize: 15, color: AppColors.textFaint)),
+                            Text('/ ${p.unit}', style: TextStyle(fontSize: 15, color: AppColors.textFaint)),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -714,7 +690,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                         ),
                       ),
                       const SizedBox(height: 14),
-                      const Text(
+                      Text(
                         'السعر يتغير تلقائياً حسب سعر الصرف المعتمد.',
                         textAlign: TextAlign.center,
                         style: TextStyle(fontSize: 12, color: AppColors.textFaint),

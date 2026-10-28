@@ -10,8 +10,8 @@ const _kRed = Color(0xFFFF453A);
 class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({super.key});
 
-  static const Color primary = AppColors.accent;
-  static const Color bg = AppColors.bg;
+  static Color get primary => AppColors.accent;
+  static Color get bg => AppColors.bg;
 
   @override
   State<UserProfileScreen> createState() => _UserProfileScreenState();
@@ -29,7 +29,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           elevation: 0,
           scrolledUnderElevation: 0,
           centerTitle: true,
-          title: const Text(
+          title: Text(
             'الملف الشخصي',
             style: TextStyle(fontFamily: 'Cairo', color: AppColors.text, fontWeight: FontWeight.w700),
           ),
@@ -97,8 +97,9 @@ class _ProfileContentState extends State<ProfileContent> {
                 title: 'الحساب الشخصي',
                 items: [
                   _ProfileItem(icon: Icons.person_outline_rounded, label: 'المعلومات الشخصية'),
-
+                  _ProfileItem(icon: Icons.shopping_bag_outlined, label: 'طلباتي'),
                   _ProfileItem(icon: Icons.favorite_border_rounded, label: 'المفضلة'),
+                  _ProfileItem(icon: Icons.location_on_outlined, label: 'العناوين المسجلة'),
                 ],
               ),
               const SizedBox(height: 16),
@@ -149,7 +150,7 @@ class _ProfileHeader extends StatelessWidget {
                 backgroundColor: AppColors.surfaceHigh,
                 backgroundImage: user?.photoURL == null ? null : NetworkImage(user!.photoURL!),
                 child: user?.photoURL == null
-                    ? const Icon(Icons.person_rounded, size: 48, color: UserProfileScreen.primary)
+                    ? Icon(Icons.person_rounded, size: 48, color: UserProfileScreen.primary)
                     : null,
               ),
               Positioned(
@@ -157,7 +158,7 @@ class _ProfileHeader extends StatelessWidget {
                 left: 0,
                 child: Container(
                   padding: const EdgeInsets.all(6),
-                  decoration: const BoxDecoration(color: UserProfileScreen.primary, shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: UserProfileScreen.primary, shape: BoxShape.circle),
                   child: const Icon(Icons.edit_rounded, size: 16, color: Colors.white),
                 ),
               ),
@@ -166,17 +167,12 @@ class _ProfileHeader extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             user?.displayName ?? 'اسم المستخدم',
-            style: const TextStyle(
-              fontFamily: 'Cairo',
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AppColors.text,
-            ),
+            style: TextStyle(fontFamily: 'Cairo', fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.text),
           ),
           const SizedBox(height: 4),
           Text(
             user?.email ?? '+963 999 999 999 · user@email.com',
-            style: const TextStyle(fontFamily: 'Cairo', fontSize: 13, color: AppColors.textFaint),
+            style: TextStyle(fontFamily: 'Cairo', fontSize: 13, color: AppColors.textFaint),
           ),
         ],
       ),
@@ -200,7 +196,7 @@ class _SectionCard extends StatelessWidget {
             padding: const EdgeInsets.only(right: 4, bottom: 8),
             child: Text(
               title!,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Cairo',
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -216,7 +212,7 @@ class _SectionCard extends StatelessWidget {
               for (int i = 0; i < items.length; i++) ...[
                 items[i],
                 if (i != items.length - 1)
-                  const Divider(height: 0.5, thickness: 0.5, indent: 52, endIndent: 0, color: AppColors.border),
+                  Divider(height: 0.5, thickness: 0.5, indent: 52, endIndent: 0, color: AppColors.border),
               ],
             ],
           ),
@@ -255,7 +251,7 @@ class _ProfileItem extends StatelessWidget {
                 ),
               ),
             ),
-            if (color == null) const Icon(Icons.chevron_left_rounded, size: 22, color: AppColors.textFaint),
+            if (color == null) Icon(Icons.chevron_left_rounded, size: 22, color: AppColors.textFaint),
           ],
         ),
       ),

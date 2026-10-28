@@ -81,7 +81,7 @@ class _StaffGateScreenState extends State<StaffGateScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
+                Text(
                   'دخول الموظفين',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text),
@@ -152,14 +152,14 @@ class _StaffGateScreenState extends State<StaffGateScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('هذا الحساب غير مصرّح له بالإدارة', style: TextStyle(color: AppColors.text)),
+          Text('هذا الحساب غير مصرّح له بالإدارة', style: TextStyle(color: AppColors.text)),
           SelectableText(
             'السبب: ${profile == null ? 'لا يوجد مستند staff بهذا المعرّف' : profile.invalidReason}',
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 12, color: AppColors.textDim),
+            style: TextStyle(fontSize: 12, color: AppColors.textDim),
           ),
-          SelectableText('المعرّف: $uid', style: const TextStyle(fontSize: 12, color: AppColors.textDim)),
-          SelectableText('البريد: ${email ?? ''}', style: const TextStyle(fontSize: 12, color: AppColors.textDim)),
+          SelectableText('المعرّف: $uid', style: TextStyle(fontSize: 12, color: AppColors.textDim)),
+          SelectableText('البريد: ${email ?? ''}', style: TextStyle(fontSize: 12, color: AppColors.textDim)),
           const SizedBox(height: 16),
           ElevatedButton(onPressed: StaffSession.instance.signOut, child: const Text('تسجيل الخروج')),
         ],
@@ -175,15 +175,15 @@ class _StaffGateScreenState extends State<StaffGateScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            Text(
               'تعذر قراءة بيانات الموظف من Firestore',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.text),
             ),
             const SizedBox(height: 8),
-            Text('رمز الخطأ: $errorCode', style: const TextStyle(color: AppColors.text)),
+            Text('رمز الخطأ: $errorCode', style: TextStyle(color: AppColors.text)),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'تحقق من قواعد Firestore للسماح بقراءة staff/{UID} للمستخدم المسجل.',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.text),
@@ -202,7 +202,7 @@ class _StaffGateScreenState extends State<StaffGateScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('مرحباً ${profile.name} — ${profile.branchId}', style: const TextStyle(color: AppColors.text)),
+          Text('مرحباً ${profile.name} — ${profile.branchId}', style: TextStyle(color: AppColors.text)),
           const SizedBox(height: 12),
           ElevatedButton.icon(
             onPressed: () {
@@ -235,7 +235,7 @@ class _StaffGateScreenState extends State<StaffGateScreen> {
 
   Widget _buildContent(StaffSession session) {
     if (session.loading || !session.initialized) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: AppColors.bg,
         body: Center(child: CircularProgressIndicator(color: AppColors.accent)),
       );
@@ -336,10 +336,10 @@ class _GoogleButton extends StatelessWidget {
             color: AppColors.surface,
             shape: ContinuousRectangleBorder(
               borderRadius: BorderRadius.circular(32),
-              side: const BorderSide(color: AppColors.border, width: 0.8),
+              side: BorderSide(color: AppColors.border, width: 0.8),
             ),
           ),
-          child: const Row(
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _GoogleG(),

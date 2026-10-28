@@ -8,6 +8,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 
 import 'theme/app_colors.dart';
+import 'theme/theme_controller.dart';
+import 'theme/theme_reveal.dart';
 import 'currency_rates_screen.dart';
 import 'firebase_options.dart';
 import 'models/nav_item_data.dart';
@@ -28,9 +30,9 @@ Future<void> main() async {
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
+      statusBarIconBrightness: Brightness.light,
       systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarIconBrightness: Brightness.dark,
+      systemNavigationBarIconBrightness: Brightness.light,
     ),
   );
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -41,6 +43,7 @@ Future<void> main() async {
   await FirebaseAppCheck.instance.activate(
     webProvider: ReCaptchaV3Provider('6LdBlOUtAAAAAKbDa0P4Jod7WO1wSHnC0cZ550S6'),
   );
+  await ThemeController.instance.init();
   Pricing.instance.start();
   registerFcmBackgroundHandler();
   runApp(const MyApp());
@@ -62,45 +65,67 @@ class _AppScroll extends CupertinoScrollBehavior {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  ThemeData _theme(bool dark) {
+    final c = AppColors.current;
+    return ThemeData(
+      useMaterial3: true,
+      brightness: dark ? Brightness.dark : Brightness.light,
+      scaffoldBackgroundColor: c.bg,
+      colorSchemeSeed: c.accent,
+      splashFactory: NoSplash.splashFactory,
+      highlightColor: Colors.transparent,
+      appBarTheme: AppBarTheme(
+        backgroundColor: c.bg,
+        foregroundColor: c.text,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        centerTitle: true,
+        titleTextStyle: TextStyle(color: c.text, fontSize: 17, fontWeight: FontWeight.w600),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: c.surface,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      dividerTheme: DividerThemeData(color: c.border, thickness: 0.5, space: 1),
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      navigatorKey: navigatorKey,
-      scrollBehavior: const _AppScroll(),
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.light,
-        scaffoldBackgroundColor: AppColors.bg,
-        colorSchemeSeed: AppColors.accent,
-        splashFactory: NoSplash.splashFactory,
-        highlightColor: Colors.transparent,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: AppColors.bg,
-          foregroundColor: AppColors.text,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-          surfaceTintColor: Colors.transparent,
-          centerTitle: true,
-          titleTextStyle: TextStyle(color: AppColors.text, fontSize: 17, fontWeight: FontWeight.w600),
-        ),
-        dialogTheme: DialogThemeData(
-          backgroundColor: AppColors.surface,
-          surfaceTintColor: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        ),
-        dividerTheme: const DividerThemeData(color: AppColors.border, thickness: 0.5, space: 1),
-        pageTransitionsTheme: const PageTransitionsTheme(
-          builders: {
-            TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-            TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
-            TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
-            TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
-          },
-        ),
-      ),
-      home: const SplashScreen(next: DemoPage()),
+    return AnimatedBuilder(
+      animation: ThemeController.instance,
+      builder: (context, _) {
+        final dark = ThemeController.instance.isDark;
+        final icons = dark ? Brightness.light : Brightness.dark;
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          navigatorKey: navigatorKey,
+          scrollBehavior: const _AppScroll(),
+          theme: _theme(dark),
+          builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+            value: SystemUiOverlayStyle(
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness: icons,
+              statusBarBrightness: dark ? Brightness.dark : Brightness.light,
+              systemNavigationBarColor: Colors.transparent,
+              systemNavigationBarIconBrightness: icons,
+            ),
+            child: ThemeReveal(key: ThemeReveal.revealKey, child: child ?? const SizedBox.shrink()),
+          ),
+          home: const SplashScreen(next: ThemeScope(child: DemoPage())),
+        );
+      },
     );
   }
 }

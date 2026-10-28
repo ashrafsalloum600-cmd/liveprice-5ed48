@@ -113,7 +113,7 @@ class _NavButton extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.fade,
                     softWrap: false,
-                    style: const TextStyle(color: AppColors.text, fontSize: 15, fontWeight: FontWeight.w600),
+                    style: TextStyle(color: AppColors.text, fontSize: 15, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],

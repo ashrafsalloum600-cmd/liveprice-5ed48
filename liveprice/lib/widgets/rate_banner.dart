@@ -14,7 +14,7 @@ class RateBanner extends StatefulWidget {
 }
 
 class _RateBannerState extends State<RateBanner> {
-  static const _label = TextStyle(fontSize: 13, color: AppColors.textDim, fontWeight: FontWeight.w500);
+  static TextStyle get _label => TextStyle(fontSize: 13, color: AppColors.textDim, fontWeight: FontWeight.w500);
   static const _red = Color(0xFFFF453A);
   static const _green = Color(0xFF30D158);
 
@@ -98,15 +98,15 @@ class _RateBannerState extends State<RateBanner> {
       children: [
         _dot(),
         const SizedBox(width: 8),
-        const Text('سعر الصرف :', style: _label),
+        Text('سعر الصرف :', style: _label),
         const SizedBox(width: 6),
         Text(
           _fmt(rate),
           textDirection: TextDirection.ltr,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.text),
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.text),
         ),
         const SizedBox(width: 6),
-        const Text('ل.س', style: _label),
+        Text('ل.س', style: _label),
         if (up || down) const SizedBox(width: 6),
         _arrow(up, down),
       ],
@@ -120,11 +120,11 @@ class _RateBannerState extends State<RateBanner> {
       children: [
         const Icon(Icons.check_circle_outline_rounded, size: 16, color: _green),
         const SizedBox(width: 6),
-        const Text('آخر تحديث للأسعار :', style: _label),
+        Text('آخر تحديث للأسعار :', style: _label),
         const SizedBox(width: 6),
         Text(
           _relativeUpdateTime(updatedAt),
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.text),
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.text),
         ),
       ],
     );

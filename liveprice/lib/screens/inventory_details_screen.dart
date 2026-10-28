@@ -88,7 +88,7 @@ class _InventoryDetailsScreenState extends State<InventoryDetailsScreen> {
           alignment: AlignmentDirectional.centerStart,
           child: Text(
             _branchNames[_branchId] ?? _branchId,
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.text),
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.text),
           ),
         ),
       );
@@ -137,11 +137,11 @@ class _InventoryDetailsScreenState extends State<InventoryDetailsScreen> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
                 child: TextField(
-                  style: const TextStyle(color: AppColors.text),
+                  style: TextStyle(color: AppColors.text),
                   decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.search, color: AppColors.textFaint),
+                    prefixIcon: Icon(Icons.search, color: AppColors.textFaint),
                     hintText: 'ابحث باسم المنتج أو رمزه',
-                    hintStyle: const TextStyle(color: AppColors.textFaint),
+                    hintStyle: TextStyle(color: AppColors.textFaint),
                     filled: true,
                     fillColor: AppColors.surface,
                     contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -156,7 +156,7 @@ class _InventoryDetailsScreenState extends State<InventoryDetailsScreen> {
                   future: _productsFuture,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator(color: AppColors.accent));
+                      return Center(child: CircularProgressIndicator(color: AppColors.accent));
                     }
                     if (snapshot.hasError) {
                       return const Center(child: Text('تعذر تحميل المنتجات أو ليس لديك صلاحية القراءة'));
@@ -168,7 +168,7 @@ class _InventoryDetailsScreenState extends State<InventoryDetailsScreen> {
                           return const Center(child: Text('تعذر قراءة كميات الفروع؛ تحقق من صلاحيات الموظف'));
                         }
                         if (!inventorySnapshot.hasData) {
-                          return const Center(child: CircularProgressIndicator(color: AppColors.accent));
+                          return Center(child: CircularProgressIndicator(color: AppColors.accent));
                         }
                         final inventory = inventorySnapshot.data!;
                         final branchQuantities = inventory.quantities[_branchId] ?? const <String, num>{};
@@ -192,13 +192,13 @@ class _InventoryDetailsScreenState extends State<InventoryDetailsScreen> {
                                 alignment: AlignmentDirectional.centerStart,
                                 child: Text(
                                   '${items.length} مادة • آخر رفع: ${_formatDate(inventory.lastUploads[_branchId])}',
-                                  style: const TextStyle(fontSize: 12, color: AppColors.textFaint),
+                                  style: TextStyle(fontSize: 12, color: AppColors.textFaint),
                                 ),
                               ),
                             ),
                             Expanded(
                               child: items.isEmpty
-                                  ? const Center(
+                                  ? Center(
                                       child: Text(
                                         'لا توجد كميات مسجلة لهذا الفرع',
                                         style: TextStyle(color: AppColors.textFaint),
@@ -217,10 +217,10 @@ class _InventoryDetailsScreenState extends State<InventoryDetailsScreen> {
                                             ? _kOrange
                                             : AppColors.text;
                                         return ListTile(
-                                          title: Text(product.name, style: const TextStyle(color: AppColors.text)),
+                                          title: Text(product.name, style: TextStyle(color: AppColors.text)),
                                           subtitle: Text(
                                             product.id,
-                                            style: const TextStyle(fontSize: 12, color: AppColors.textFaint),
+                                            style: TextStyle(fontSize: 12, color: AppColors.textFaint),
                                           ),
                                           trailing: Text(
                                             '${_fmt(qty)} ${product.unit}'.trim(),

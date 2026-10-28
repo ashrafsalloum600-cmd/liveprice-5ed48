@@ -36,7 +36,7 @@ void showAppMessage(Object? message, {bool? important}) {
         child: AlertDialog(
           backgroundColor: AppColors.surfaceHigh,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          content: Text(text, style: const TextStyle(color: AppColors.text, fontSize: 14, height: 1.4)),
+          content: Text(text, style: TextStyle(color: AppColors.text, fontSize: 14, height: 1.4)),
           actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('موافق'))],
         ),
       ),
@@ -65,7 +65,7 @@ void showAppMessage(Object? message, {bool? important}) {
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: AppColors.border),
               ),
-              child: Text(text, style: const TextStyle(color: AppColors.text, fontSize: 13.5, height: 1.3)),
+              child: Text(text, style: TextStyle(color: AppColors.text, fontSize: 13.5, height: 1.3)),
             ),
           ),
         ),

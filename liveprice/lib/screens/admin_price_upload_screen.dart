@@ -181,30 +181,30 @@ class _AdminPriceUploadScreenState extends State<AdminPriceUploadScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.bg,
         elevation: 0,
-        title: const Text('رفع الأسعار', style: TextStyle(color: AppColors.text)),
+        title: Text('رفع الأسعار', style: TextStyle(color: AppColors.text)),
         actions: [
           IconButton(
             tooltip: 'تفاصيل مخزون الفروع',
             onPressed: () =>
                 Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const InventoryDetailsScreen())),
-            icon: const Icon(Icons.inventory_2_outlined, color: AppColors.text),
+            icon: Icon(Icons.inventory_2_outlined, color: AppColors.text),
           ),
           IconButton(
             tooltip: 'أدوات المالك',
             onPressed: () =>
                 Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const OwnerInventoryToolsScreen())),
-            icon: const Icon(Icons.admin_panel_settings_outlined, color: AppColors.text),
+            icon: Icon(Icons.admin_panel_settings_outlined, color: AppColors.text),
           ),
           TextButton.icon(
             onPressed: _authService.signOut,
-            icon: const Icon(Icons.logout_rounded, color: AppColors.text),
-            label: const Text('تسجيل الخروج', style: TextStyle(color: AppColors.text)),
+            icon: Icon(Icons.logout_rounded, color: AppColors.text),
+            label: Text('تسجيل الخروج', style: TextStyle(color: AppColors.text)),
           ),
         ],
       ),
       body: Center(
         child: _uploading
-            ? const CircularProgressIndicator(color: AppColors.text)
+            ? CircularProgressIndicator(color: AppColors.text)
             : SingleChildScrollView(
                 padding: const EdgeInsets.all(24),
                 child: Column(
@@ -232,14 +232,8 @@ class _AdminPriceUploadScreenState extends State<AdminPriceUploadScreen> {
                         onTap: _canUpload ? _pickAndUpload : null,
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(40),
-                            boxShadow: [
-                              BoxShadow(color: Colors.black.withAlpha(30), blurRadius: 24, offset: const Offset(0, 8)),
-                            ],
-                          ),
-                          child: const Row(
+                          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(40)),
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(Icons.upload_file_rounded, color: AppColors.text),

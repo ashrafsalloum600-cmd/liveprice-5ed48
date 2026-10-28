@@ -12,7 +12,7 @@ class NotificationsScreen extends StatelessWidget {
       builder: (context, _) {
         final items = NotificationCenter.instance.notifications;
         if (items.isEmpty) {
-          return const Center(
+          return Center(
             child: Text('لا توجد تنبيهات حالياً', style: TextStyle(color: AppColors.textFaint)),
           );
         }
@@ -32,7 +32,7 @@ class NotificationsScreen extends StatelessWidget {
                     height: 40,
                     decoration: BoxDecoration(color: AppColors.surfaceHigh, borderRadius: BorderRadius.circular(10)),
                     alignment: Alignment.center,
-                    child: const Icon(Icons.notifications_rounded, size: 20, color: AppColors.accent),
+                    child: Icon(Icons.notifications_rounded, size: 20, color: AppColors.accent),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -41,10 +41,10 @@ class NotificationsScreen extends StatelessWidget {
                       children: [
                         Text(
                           n.title,
-                          style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.text),
+                          style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.text),
                         ),
                         const SizedBox(height: 2),
-                        Text(n.body, style: const TextStyle(fontSize: 13, color: AppColors.textDim)),
+                        Text(n.body, style: TextStyle(fontSize: 13, color: AppColors.textDim)),
                       ],
                     ),
                   ),

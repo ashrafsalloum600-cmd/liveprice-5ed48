@@ -7,7 +7,7 @@ class AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Drawer(
+    return Drawer(
       backgroundColor: AppColors.bg,
       elevation: 0,
       width: 300,
