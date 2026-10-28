@@ -22,7 +22,7 @@ class ThemeRevealState extends State<ThemeReveal> with SingleTickerProviderState
   ui.Image? _old;
   Offset _origin = Offset.zero;
 
-  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 650))
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000))
     ..addStatusListener((status) {
       if (status == AnimationStatus.completed && mounted) {
         _old?.dispose();
@@ -36,7 +36,7 @@ class ThemeRevealState extends State<ThemeReveal> with SingleTickerProviderState
     ui.Image? image;
     if (object is RenderRepaintBoundary && !MediaQuery.disableAnimationsOf(context)) {
       try {
-        image = await object.toImage(pixelRatio: math.min(MediaQuery.devicePixelRatioOf(context), 2.0));
+        image = await object.toImage(pixelRatio: MediaQuery.devicePixelRatioOf(context));
       } catch (_) {
         image = null;
       }
@@ -49,8 +49,12 @@ class ThemeRevealState extends State<ThemeReveal> with SingleTickerProviderState
       _old = image;
       _origin = origin;
     });
-    await ThemeController.instance.toggle();
+    // 1) نتأكد أن اللقطة ظاهرة فوق الشاشة قبل أي تغيير
     await WidgetsBinding.instance.endOfFrame;
+    // 2) نبدّل الثيم تحت اللقطة
+    ThemeController.instance.toggle();
+    await WidgetsBinding.instance.endOfFrame;
+    // 3) بعد ما يستقر الإطار الجديد نبدأ الدائرة
     if (mounted) _c.forward(from: 0);
   }
 
@@ -91,6 +95,12 @@ class _RevealPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    final dst = Offset.zero & size;
+    final src = Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble());
+    if (t <= 0) {
+      canvas.drawImageRect(image, src, dst, Paint()..filterQuality = FilterQuality.medium);
+      return;
+    }
     final corners = [Offset.zero, Offset(size.width, 0), Offset(0, size.height), Offset(size.width, size.height)];
     final far = corners.map((p) => (p - origin).distance).reduce(math.max);
     final hole = Path()..addOval(Rect.fromCircle(center: origin, radius: far * t));

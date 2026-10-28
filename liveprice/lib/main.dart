@@ -113,6 +113,7 @@ class MyApp extends StatelessWidget {
           navigatorKey: navigatorKey,
           scrollBehavior: const _AppScroll(),
           theme: _theme(dark),
+          themeAnimationDuration: Duration.zero,
           builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
             value: SystemUiOverlayStyle(
               statusBarColor: Colors.transparent,

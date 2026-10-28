@@ -28,24 +28,28 @@ class ThemeController extends ChangeNotifier {
     AppColors.current = dark ? AppPalette.dark : AppPalette.light;
   }
 
+  static void _rebuild(Element element) {
+    element.markNeedsBuild();
+    element.visitChildren(_rebuild);
+  }
+
   Future<void> toggle() async {
     _apply(!_dark);
     notifyListeners();
+    // إعادة بناء كل الواجهة مكانها (يحافظ على التبويب والتمرير والبحث)
+    WidgetsBinding.instance.rootElement?.visitChildren(_rebuild);
     try {
       (await SharedPreferences.getInstance()).setBool(_key, _dark);
     } catch (_) {}
   }
 }
 
-/// يعيد بناء الشاشة بالكامل عند تغيير الثيم حتى لا تبقى ألوان قديمة.
+/// محفوظ للتوافق: إعادة البناء صارت تتم داخل ThemeController.
 class ThemeScope extends StatelessWidget {
   const ThemeScope({super.key, required this.child});
 
   final Widget child;
 
   @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-    animation: ThemeController.instance,
-    builder: (context, _) => KeyedSubtree(key: ValueKey<bool>(ThemeController.instance.isDark), child: child),
-  );
+  Widget build(BuildContext context) => child;
 }

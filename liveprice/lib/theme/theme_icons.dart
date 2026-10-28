@@ -5,7 +5,7 @@ enum ThemeIconSet { cupertino, material, outlined }
 
 /// غيّر الأيقونات من هنا فقط: عدّل قيمة preset.
 class ThemeIcons {
-  static const ThemeIconSet preset = ThemeIconSet.cupertino;
+  static const ThemeIconSet preset = ThemeIconSet.material;
 
   static IconData of(bool dark) => switch (preset) {
     ThemeIconSet.cupertino => dark ? CupertinoIcons.moon_fill : CupertinoIcons.sun_max_fill,
