@@ -78,13 +78,12 @@ class _NavButton extends StatelessWidget {
           duration: PillNavBar._duration,
           curve: PillNavBar._curve,
           height: 44,
-          padding: selected ? const EdgeInsets.symmetric(horizontal: 14) : EdgeInsets.zero,
           decoration: ShapeDecoration(
             color: selected ? AppColors.surfaceHigh : Colors.transparent,
             shape: ContinuousRectangleBorder(borderRadius: BorderRadius.circular(34)),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+          child: _NavRow(
+            selected: selected,
             children: [
               Stack(
                 clipBehavior: Clip.none,
@@ -122,6 +121,24 @@ class _NavButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// الحشوة بمنحنى بدون تجاوز (النابض كان يعطي قيمة سالبة ويكسر assertion)
+class _NavRow extends StatelessWidget {
+  const _NavRow({required this.selected, required this.children});
+
+  final bool selected;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedPadding(
+      duration: PillNavBar._duration,
+      curve: Curves.easeOutCubic,
+      padding: selected ? const EdgeInsets.symmetric(horizontal: 14) : EdgeInsets.zero,
+      child: Row(mainAxisSize: MainAxisSize.min, children: children),
     );
   }
 }

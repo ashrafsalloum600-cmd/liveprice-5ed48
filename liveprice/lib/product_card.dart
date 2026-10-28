@@ -264,7 +264,7 @@ class ProductCard extends StatelessWidget {
     return RepaintBoundary(
       child: Pressable(
         scale: 0.97,
-        onTap: () => _showProductSheet(context, p),
+        onTap: () => _openProduct(context, p, isFavorite, onFavoriteToggle),
         child: Container(
           padding: const EdgeInsets.all(8),
           decoration: ShapeDecoration(
@@ -285,27 +285,33 @@ class ProductCard extends StatelessWidget {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        Container(
-                          color: AppColors.surfaceHigh,
-                          child: p.imageUrl.isEmpty
-                              ? const Icon(Icons.image_outlined, size: 32, color: AppColors.textFaint)
-                              : Image.network(
-                                  p.imageUrl,
-                                  fit: BoxFit.cover,
-                                  cacheWidth: 300,
-                                  gaplessPlayback: true,
-                                  loadingBuilder: (context, child, progress) {
-                                    if (progress == null) return child;
-                                    return const Center(
-                                      child: SizedBox.square(
-                                        dimension: 18,
-                                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent),
-                                      ),
-                                    );
-                                  },
-                                  errorBuilder: (_, _, _) =>
-                                      const Icon(Icons.image_outlined, size: 32, color: AppColors.textFaint),
-                                ),
+                        Hero(
+                          tag: 'product-image-${p.id}',
+                          child: Material(
+                            type: MaterialType.transparency,
+                            child: Container(
+                              color: AppColors.surfaceHigh,
+                              child: p.imageUrl.isEmpty
+                                  ? const Icon(Icons.image_outlined, size: 32, color: AppColors.textFaint)
+                                  : Image.network(
+                                      p.imageUrl,
+                                      fit: BoxFit.cover,
+                                      cacheWidth: 300,
+                                      gaplessPlayback: true,
+                                      loadingBuilder: (context, child, progress) {
+                                        if (progress == null) return child;
+                                        return const Center(
+                                          child: SizedBox.square(
+                                            dimension: 18,
+                                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent),
+                                          ),
+                                        );
+                                      },
+                                      errorBuilder: (_, _, _) =>
+                                          const Icon(Icons.image_outlined, size: 32, color: AppColors.textFaint),
+                                    ),
+                            ),
+                          ),
                         ),
                         Positioned(
                           top: 0,
@@ -531,97 +537,208 @@ Color _stockColorOf(String? s) => switch (s) {
   _ => _kGray,
 };
 
-void _showProductSheet(BuildContext context, ProductModel p) {
-  showModalBottomSheet<void>(
-    context: context,
-    backgroundColor: AppColors.surface,
-    showDragHandle: true,
-    shape: const ContinuousRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(56))),
-    builder: (_) => _ProductSheet(product: p),
+void _openProduct(BuildContext context, ProductModel p, bool isFavorite, VoidCallback onToggle) {
+  Navigator.of(context).push(
+    PageRouteBuilder<void>(
+      transitionDuration: const Duration(milliseconds: 380),
+      reverseTransitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (_, _, _) => ProductDetailsPage(product: p, isFavorite: isFavorite, onFavoriteToggle: onToggle),
+      transitionsBuilder: (_, animation, _, child) => FadeTransition(
+        opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+        child: child,
+      ),
+    ),
   );
 }
 
-class _ProductSheet extends StatelessWidget {
-  const _ProductSheet({required this.product});
+class ProductDetailsPage extends StatefulWidget {
+  const ProductDetailsPage({
+    super.key,
+    required this.product,
+    required this.isFavorite,
+    required this.onFavoriteToggle,
+  });
 
   final ProductModel product;
+  final bool isFavorite;
+  final VoidCallback onFavoriteToggle;
+
+  @override
+  State<ProductDetailsPage> createState() => _ProductDetailsPageState();
+}
+
+class _ProductDetailsPageState extends State<ProductDetailsPage> {
+  late bool _fav = widget.isFavorite;
+
+  void _toggle() {
+    HapticFeedback.selectionClick();
+    widget.onFavoriteToggle();
+    setState(() => _fav = !_fav);
+  }
+
+  Widget _circleButton(IconData icon, VoidCallback onTap, {Color? color}) => Pressable(
+    onTap: onTap,
+    scale: 0.88,
+    child: Container(
+      width: 42,
+      height: 42,
+      decoration: BoxDecoration(color: AppColors.surface.withAlpha(235), shape: BoxShape.circle),
+      child: Icon(icon, size: 22, color: color ?? AppColors.text),
+    ),
+  );
+
+  Widget _infoRow(String label, String value, {Color? valueColor}) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 12),
+    child: Row(
+      children: [
+        Text(label, style: const TextStyle(fontSize: 14, color: AppColors.textFaint)),
+        const Spacer(),
+        Text(
+          value,
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: valueColor ?? AppColors.text),
+        ),
+      ],
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
-    final p = product;
+    final p = widget.product;
     final label = _stockLabelOf(p.stock);
     final color = _stockColorOf(p.stock);
-    return SafeArea(
-      child: Directionality(
-        textDirection: TextDirection.rtl,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  height: 180,
-                  color: AppColors.surfaceHigh,
-                  alignment: Alignment.center,
-                  child: p.imageUrl.isEmpty
-                      ? const Icon(Icons.image_outlined, size: 48, color: AppColors.textFaint)
-                      : Image.network(
-                          p.imageUrl,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: 180,
-                          cacheWidth: 600,
-                          gaplessPlayback: true,
-                          errorBuilder: (_, _, _) =>
-                              const Icon(Icons.image_outlined, size: 48, color: AppColors.textFaint),
+    final top = MediaQuery.paddingOf(context).top;
+    final bottom = MediaQuery.paddingOf(context).bottom;
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: AppColors.bg,
+        body: Stack(
+          children: [
+            ListView(
+              padding: EdgeInsets.zero,
+              physics: const BouncingScrollPhysics(),
+              children: [
+                Hero(
+                  tag: 'product-image-${p.id}',
+                  child: Material(
+                    type: MaterialType.transparency,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(36)),
+                      child: Container(
+                        height: 340 + top * 0.5,
+                        width: double.infinity,
+                        color: AppColors.surfaceHigh,
+                        alignment: Alignment.center,
+                        child: p.imageUrl.isEmpty
+                            ? const Icon(Icons.image_outlined, size: 64, color: AppColors.textFaint)
+                            : Image.network(
+                                p.imageUrl,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: double.infinity,
+                                cacheWidth: 900,
+                                gaplessPlayback: true,
+                                errorBuilder: (_, _, _) =>
+                                    const Icon(Icons.image_outlined, size: 64, color: AppColors.textFaint),
+                              ),
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(20, 20, 20, 24 + bottom),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        p.name,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          height: 1.3,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.text,
                         ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                p.name,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.text),
-              ),
-              const SizedBox(height: 6),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  AnimatedBuilder(
-                    animation: Pricing.instance,
-                    builder: (context, _) => Text(
-                      Pricing.instance.format(p),
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: AppColors.accent),
-                    ),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          AnimatedBuilder(
+                            animation: Pricing.instance,
+                            builder: (context, _) => Text(
+                              Pricing.instance.format(p),
+                              style: const TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.accent,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          if (p.unit.isNotEmpty)
+                            Text('/ ${p.unit}', style: const TextStyle(fontSize: 15, color: AppColors.textFaint)),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      if (label != null)
+                        Align(
+                          alignment: AlignmentDirectional.centerStart,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                            decoration: ShapeDecoration(
+                              color: color.withAlpha(30),
+                              shape: ContinuousRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                            ),
+                            child: Text(
+                              label,
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color),
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 24),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: ShapeDecoration(
+                          color: AppColors.surface,
+                          shape: ContinuousRectangleBorder(borderRadius: BorderRadius.circular(40)),
+                        ),
+                        child: Column(
+                          children: [
+                            _infoRow('رمز المادة', p.id),
+                            const Divider(),
+                            _infoRow('الواحدة', p.unit.isEmpty ? '—' : p.unit),
+                            const Divider(),
+                            _infoRow('التوفر', label ?? '—', valueColor: label == null ? null : color),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      const Text(
+                        'السعر يتغير تلقائياً حسب سعر الصرف المعتمد.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 12, color: AppColors.textFaint),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  if (p.unit.isNotEmpty)
-                    Text('/ ${p.unit}', style: const TextStyle(fontSize: 14, color: AppColors.textFaint)),
-                ],
-              ),
-              const SizedBox(height: 14),
-              if (label != null)
-                Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: ShapeDecoration(
-                      color: color.withAlpha(30),
-                      shape: ContinuousRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                    ),
-                    child: Text(
-                      label,
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color),
-                    ),
-                  ),
                 ),
-              const SizedBox(height: 10),
-              Text('رمز المادة: ${p.id}', style: const TextStyle(fontSize: 12, color: AppColors.textFaint)),
-            ],
-          ),
+              ],
+            ),
+            Positioned(
+              top: top + 8,
+              right: 14,
+              child: _circleButton(Icons.arrow_forward_rounded, () => Navigator.of(context).maybePop()),
+            ),
+            Positioned(
+              top: top + 8,
+              left: 14,
+              child: _circleButton(
+                _fav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                _toggle,
+                color: _fav ? _kRed : null,
+              ),
+            ),
+          ],
         ),
       ),
     );
