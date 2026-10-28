@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart' hide SnackBar, ScaffoldMessenger;
 import 'package:liveprice/widgets/app_message.dart';
@@ -10,6 +11,7 @@ import 'package:liveprice/services/audit_service.dart';
 import 'package:liveprice/services/auth_service.dart';
 import 'package:liveprice/services/staff_session.dart';
 import 'package:liveprice/theme/app_colors.dart';
+import 'package:liveprice/theme/spring.dart';
 
 class StaffGateScreen extends StatefulWidget {
   const StaffGateScreen({super.key});
@@ -85,19 +87,10 @@ class _StaffGateScreenState extends State<StaffGateScreen> {
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.text),
                 ),
                 const SizedBox(height: 24),
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 8,
-                  children: [
-                    for (final branch in const [('b1', 'المركز الرئيسي'), ('b2', 'طرطوس'), ('b3', 'جديدة البحر')])
-                      ChoiceChip(
-                        label: Text(branch.$2),
-                        selected: _branchId == branch.$1,
-                        onSelected: _signingIn ? null : (_) => setState(() => _branchId = branch.$1),
-                        selectedColor: AppColors.accent,
-                        labelStyle: TextStyle(color: _branchId == branch.$1 ? Colors.white : AppColors.text),
-                      ),
-                  ],
+                _BranchPicker(
+                  selected: _branchId,
+                  enabled: !_signingIn,
+                  onSelect: (id) => setState(() => _branchId = id),
                 ),
                 const SizedBox(height: 16),
                 TextField(
@@ -120,8 +113,19 @@ class _StaffGateScreenState extends State<StaffGateScreen> {
                       ? null
                       : () =>
                             _signIn(() => _authService.signInWithEmail(AuthService.branchEmail(_branchId!), password)),
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent, foregroundColor: Colors.white),
-                  child: _signingIn ? const CircularProgressIndicator() : const Text('دخول'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.accent,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(52),
+                    elevation: 0,
+                    shape: ContinuousRectangleBorder(borderRadius: BorderRadius.circular(32)),
+                  ),
+                  child: _signingIn
+                      ? const SizedBox.square(
+                          dimension: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('دخول', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 ),
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 16),
@@ -133,11 +137,7 @@ class _StaffGateScreenState extends State<StaffGateScreen> {
                     ],
                   ),
                 ),
-                OutlinedButton.icon(
-                  onPressed: _signingIn ? null : () => _signIn(_authService.signInWithGoogle),
-                  icon: const Icon(Icons.g_mobiledata_rounded),
-                  label: const Text('الدخول كمالك بحساب Google'),
-                ),
+                _GoogleButton(onTap: _signingIn ? null : () => _signIn(_authService.signInWithGoogle)),
               ],
             ),
           ),
@@ -260,4 +260,133 @@ class _StaffGateScreenState extends State<StaffGateScreen> {
       builder: (context, _) => _buildContent(StaffSession.instance),
     ),
   );
+}
+
+// ثلاثة أزرار متساوية بسطر واحد ثابت الحجم (لا تلتف ولا تتمدد عند الاختيار)
+class _BranchPicker extends StatelessWidget {
+  const _BranchPicker({required this.selected, required this.enabled, required this.onSelect});
+
+  static const _branches = [('b1', 'المركز الرئيسي'), ('b2', 'طرطوس'), ('b3', 'جديدة البحر')];
+
+  final String? selected;
+  final bool enabled;
+  final ValueChanged<String> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        for (var i = 0; i < _branches.length; i++)
+          Expanded(
+            child: Padding(
+              padding: EdgeInsetsDirectional.only(end: i < _branches.length - 1 ? 8 : 0),
+              child: Pressable(
+                onTap: enabled ? () => onSelect(_branches[i].$1) : null,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOutCubic,
+                  height: 48,
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  decoration: ShapeDecoration(
+                    color: selected == _branches[i].$1 ? AppColors.accent : AppColors.surface,
+                    shape: ContinuousRectangleBorder(
+                      borderRadius: BorderRadius.circular(28),
+                      side: BorderSide(
+                        color: selected == _branches[i].$1 ? AppColors.accent : AppColors.border,
+                        width: 0.8,
+                      ),
+                    ),
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      _branches[i].$2,
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: selected == _branches[i].$1 ? Colors.white : AppColors.text,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _GoogleButton extends StatelessWidget {
+  const _GoogleButton({required this.onTap});
+
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Pressable(
+      onTap: onTap,
+      child: Opacity(
+        opacity: onTap == null ? 0.5 : 1,
+        child: Container(
+          height: 52,
+          decoration: ShapeDecoration(
+            color: AppColors.surface,
+            shape: ContinuousRectangleBorder(
+              borderRadius: BorderRadius.circular(32),
+              side: const BorderSide(color: AppColors.border, width: 0.8),
+            ),
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _GoogleG(),
+              SizedBox(width: 10),
+              Text(
+                'الدخول كمالك بحساب Google',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.text),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// حرف G بألوان Google يدور دورة وحدة بنابض عند ظهور الصفحة ثم يثبت
+class _GoogleG extends StatelessWidget {
+  const _GoogleG();
+
+  static const _colors = [
+    Color(0xFF4285F4),
+    Color(0xFF34A853),
+    Color(0xFFFBBC05),
+    Color(0xFFEA4335),
+    Color(0xFF4285F4),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 900),
+      curve: const AppSpring(),
+      builder: (context, t, child) => Opacity(
+        opacity: t.clamp(0.0, 1.0),
+        child: Transform.rotate(angle: (1 - t) * -2 * math.pi, child: child),
+      ),
+      child: ShaderMask(
+        blendMode: BlendMode.srcIn,
+        shaderCallback: (rect) =>
+            const SweepGradient(colors: _colors, transform: GradientRotation(-math.pi / 4)).createShader(rect),
+        child: const Text(
+          'G',
+          style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white, height: 1),
+        ),
+      ),
+    );
+  }
 }

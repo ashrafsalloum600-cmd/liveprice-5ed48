@@ -618,7 +618,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
               padding: EdgeInsets.zero,
               physics: const BouncingScrollPhysics(),
               children: [
-                Hero(
+                _CloseHero(
                   tag: 'product-image-${p.id}',
                   child: Material(
                     type: MaterialType.transparency,
@@ -743,4 +743,22 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
       ),
     );
   }
+}
+
+// الضغط على الصورة المكبّرة يرجعها لمكانها بحركة Hero عكسية
+class _CloseHero extends StatelessWidget {
+  const _CloseHero({required this.tag, required this.child});
+
+  final String tag;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onTap: () {
+      HapticFeedback.selectionClick();
+      Navigator.of(context).maybePop();
+    },
+    child: Hero(tag: tag, child: child),
+  );
 }
