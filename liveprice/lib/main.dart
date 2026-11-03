@@ -23,6 +23,7 @@ import 'services/pricing.dart';
 import 'widgets/app_drawer.dart';
 import 'widgets/pill_nav_bar.dart';
 import 'widgets/top_search_bar.dart';
+import 'screens/staff_gate_screen.dart'; // المسار الصحيح
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -140,6 +141,7 @@ class DemoPage extends StatefulWidget {
 
 class _DemoPageState extends State<DemoPage> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
+  final PageController _pages = PageController(initialPage: 1);
   int _index = 1;
   bool _searchVisible = true;
   String _query = '';
@@ -156,9 +158,15 @@ class _DemoPageState extends State<DemoPage> {
     NotificationCenter.instance.start();
   }
 
+  @override
+  void dispose() {
+    _pages.dispose();
+    super.dispose();
+  }
+
   bool _onScroll(ScrollNotification n) {
     if (_index != 1) return false;
-    if (n is! ScrollUpdateNotification || n.depth != 0 || n.metrics.axis != Axis.vertical) return false;
+    if (n is! ScrollUpdateNotification || n.depth != 1 || n.metrics.axis != Axis.vertical) return false;
     final p = n.metrics.pixels;
     if (_searchVisible && p > 56 && _query.isEmpty) {
       setState(() => _searchVisible = false);
@@ -171,7 +179,6 @@ class _DemoPageState extends State<DemoPage> {
   @override
   Widget build(BuildContext context) {
     final int alertsIndex = _items.indexWhere((item) => item.label == 'التنبيهات');
-    final int homeIndex = _items.indexWhere((item) => item.label == 'الصفحة الرئيسية');
 
     return Scaffold(
       key: _scaffoldKey,
@@ -209,24 +216,32 @@ class _DemoPageState extends State<DemoPage> {
                   items: _items,
                   currentIndex: _index,
                   badgeIndices: NotificationCenter.instance.hasUnread ? {alertsIndex} : const {},
-                  onTap: (index) {
-                    setState(() {
-                      _index = index;
-                      _searchVisible = true;
-                    });
-                    if (index == alertsIndex) NotificationCenter.instance.markAllRead();
-                  },
+                  onTap: (index) => _pages.animateToPage(
+                    index,
+                    duration: const Duration(milliseconds: 380),
+                    curve: Curves.easeOutCubic,
+                  ),
                 ),
               ),
             ),
             Expanded(
               child: NotificationListener<ScrollNotification>(
                 onNotification: _onScroll,
-                child: _index == homeIndex
-                    ? ProductsGrid(searchQuery: _query)
-                    : _index == alertsIndex
-                    ? const NotificationsScreen()
-                    : const CurrencyRatesScreen(),
+                child: PageView(
+                  controller: _pages,
+                  onPageChanged: (i) {
+                    setState(() {
+                      _index = i;
+                      _searchVisible = true;
+                    });
+                    if (i == alertsIndex) NotificationCenter.instance.markAllRead();
+                  },
+                  children: [
+                    const NotificationsScreen(),
+                    ProductsGrid(searchQuery: _query),
+                    const CurrencyRatesScreen(),
+                  ],
+                ),
               ),
             ),
           ],

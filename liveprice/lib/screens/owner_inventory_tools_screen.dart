@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:liveprice/screens/staff_management_screen.dart';
 import 'package:liveprice/widgets/app_message.dart';
 import 'package:liveprice/models/product_model.dart';
 import 'package:liveprice/services/audit_service.dart';
@@ -101,6 +103,12 @@ class _OwnerInventoryToolsScreenState extends State<OwnerInventoryToolsScreen> {
                     : const Icon(Icons.public),
                 label: const Text('نشر الكتالوج العام'),
               ),
+              IconButton(
+                tooltip: 'إدارة الموظفين',
+                onPressed: () =>
+                    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const StaffManagementScreen())),
+                icon: const Icon(Icons.group_outlined),
+              ),
               IconButton(tooltip: 'تحديث', onPressed: _refresh, icon: const Icon(Icons.refresh)),
             ],
             bottom: const TabBar(
@@ -166,6 +174,22 @@ class _InventoryReport extends StatelessWidget {
   final Map<String, Map<String, num>> quantities;
   static const _branches = {'b1': 'المركز الرئيسي', 'b2': 'طرطوس', 'b3': 'جديدة البحر'};
 
+  void _copy(bool onlyLow) {
+    String esc(String v) => '"${v.replaceAll('"', '""')}"';
+    final rows = <String>['id,name,unit,b1,b2,b3,total,status'];
+    for (final p in products) {
+      final q = [for (final id in _branches.keys) quantities[id]?[p.id]];
+      final known = q.whereType<num>().toList();
+      if (known.isEmpty) continue;
+      if (onlyLow && !known.any((v) => v <= 5)) continue;
+      final total = known.fold<num>(0, (sum, v) => sum + v);
+      final status = total <= 0 ? 'نفد' : (total <= 5 ? 'محدود' : 'متوفر');
+      rows.add([esc(p.id), esc(p.name), esc(p.unit), ...q.map((v) => v?.toString() ?? ''), total, status].join(','));
+    }
+    Clipboard.setData(ClipboardData(text: rows.join('\n')));
+    showAppMessage('تم نسخ ${rows.length - 1} مادة. الصقها بملف نصي واحفظه بصيغة .csv');
+  }
+
   @override
   Widget build(BuildContext context) {
     final totals = <String, num>{for (final branchId in _branches.keys) branchId: 0};
@@ -211,6 +235,26 @@ class _InventoryReport extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _copy(false),
+                icon: const Icon(Icons.copy_rounded, size: 18),
+                label: const Text('نسخ الكل CSV'),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _copy(true),
+                icon: const Icon(Icons.warning_amber_rounded, size: 18),
+                label: const Text('نسخ الناقص CSV'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
         Text('أقل من أو يساوي 5 في فرع واحد على الأقل (${low.length})', style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 8),
         for (final product in low)
