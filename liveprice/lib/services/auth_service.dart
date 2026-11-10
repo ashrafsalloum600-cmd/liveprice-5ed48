@@ -13,7 +13,8 @@ class AuthService {
   Stream<User?> get authState => _firebaseAuth.authStateChanges();
 
   static String branchEmail(String branchId) {
-    final email = _branchEmails[branchId];
+    final normalizedBranchId = branchId.trim().toLowerCase();
+    final email = _branchEmails[normalizedBranchId];
     if (email == null) {
       throw ArgumentError.value(branchId, 'branchId', 'معرّف الفرع غير معروف');
     }

@@ -9,6 +9,12 @@ void main() {
       expect(AuthService.branchEmail('b3'), 'liveprice.branches+b3@gmail.com');
     });
 
+    test('normalizes branch IDs before lookup', () {
+      expect(AuthService.branchEmail(' B1 '), 'liveprice.branches+b1@gmail.com');
+      expect(AuthService.branchEmail('B2'), 'liveprice.branches+b2@gmail.com');
+      expect(AuthService.branchEmail('b3\n'), 'liveprice.branches+b3@gmail.com');
+    });
+
     test('rejects unknown branch IDs', () {
       expect(() => AuthService.branchEmail('unknown'), throwsArgumentError);
     });
