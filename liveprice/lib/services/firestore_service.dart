@@ -53,6 +53,13 @@ class FirestoreService {
 
   Future<int> publishCatalog() async {
     final snapshot = await _db.collection(_collection).get(const GetOptions(source: Source.server));
+    final publicSnapshot = await _db
+        .collection('products_public')
+        .get(const GetOptions(source: Source.server));
+    final oldPublicPrices = <String, num?>{
+      for (final document in publicSnapshot.docs)
+        document.id: document.data()['price'] is num ? document.data()['price'] as num : null,
+    };
     WriteBatch batch = _db.batch();
     var ops = 0;
 
@@ -65,14 +72,21 @@ class FirestoreService {
 
     for (final document in snapshot.docs) {
       final data = document.data();
-      batch.set(_db.collection('products_public').doc(document.id), {
+      final price = data['price'] is num ? data['price'] as num : 0;
+      final publicFields = <String, dynamic>{
         'name': data['name'] ?? '',
-        'price': data['price'] is num ? data['price'] : 0,
+        'price': price,
         'currency': data['currency'] ?? 'SYP',
         'unit': data['unit'] ?? '',
         'category': data['category'] ?? '',
         'imageUrl': data['imageUrl'] ?? '',
-      }, SetOptions(merge: true));
+      };
+      final oldPrice = oldPublicPrices[document.id];
+      if (oldPublicPrices.containsKey(document.id) && oldPrice != null && oldPrice != price) {
+        publicFields['prevPrice'] = oldPrice;
+        publicFields['priceChangedAt'] = FieldValue.serverTimestamp();
+      }
+      batch.set(_db.collection('products_public').doc(document.id), publicFields, SetOptions(merge: true));
       ops++;
       if (ops == 400) await flush();
     }
@@ -114,6 +128,7 @@ class FirestoreService {
       final oldPrice = (old?['price'] as num?)?.toDouble();
       final oldCur = old?['currency'] as String? ?? 'SYP';
       final newCur = fields['currency'] as String? ?? oldCur;
+      final publicPriceChanged = old != null && oldPrice != null && newPrice != null && oldPrice != newPrice;
 
       if (old != null) {
         final nameChanged = fields['name'] != null && fields['name'] != old['name'];
@@ -136,6 +151,10 @@ class FirestoreService {
           else if (old != null && old.containsKey(field))
             field: old[field],
       };
+      if (publicPriceChanged) {
+        publicFields['prevPrice'] = oldPrice;
+        publicFields['priceChangedAt'] = FieldValue.serverTimestamp();
+      }
       if (old == null) {
         batch.set(_db.collection('products_public').doc(id), publicFields);
         ops++;

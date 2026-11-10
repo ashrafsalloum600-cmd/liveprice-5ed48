@@ -9,6 +9,8 @@ class ProductModel {
   final String imageUrl;
   final String currency;
   final String stock;
+  final double? prevPrice;
+  final DateTime? priceChangedAt;
 
   const ProductModel({
     required this.id,
@@ -19,12 +21,15 @@ class ProductModel {
     required this.imageUrl,
     required this.currency,
     this.stock = '',
+    this.prevPrice,
+    this.priceChangedAt,
   });
 
   factory ProductModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
     final rawCurrency = (data['currency'] as String?)?.trim().toUpperCase();
     final currency = rawCurrency == 'USD' || rawCurrency == 'SYP' ? rawCurrency! : 'SYP';
+    final rawPriceChangedAt = data['priceChangedAt'];
     return ProductModel(
       id: doc.id,
       name: data['name'] as String? ?? '',
@@ -34,19 +39,27 @@ class ProductModel {
       imageUrl: _readImageUrl(data),
       currency: currency,
       stock: _readStock(data),
+      prevPrice: (data['prevPrice'] as num?)?.toDouble(),
+      priceChangedAt: rawPriceChangedAt is Timestamp
+          ? rawPriceChangedAt.toDate()
+          : rawPriceChangedAt is DateTime
+          ? rawPriceChangedAt
+          : null,
     );
   }
 
-  ProductModel copyWith({String? stock, String? imageUrl}) {
+  ProductModel copyWith({double? price, String? stock, String? imageUrl}) {
     return ProductModel(
       id: id,
       name: name,
-      price: price,
+      price: price ?? this.price,
       unit: unit,
       category: category,
       imageUrl: imageUrl ?? this.imageUrl,
       currency: currency,
       stock: stock ?? this.stock,
+      prevPrice: prevPrice,
+      priceChangedAt: priceChangedAt,
     );
   }
 
@@ -58,6 +71,8 @@ class ProductModel {
       'category': category,
       'imageUrl': imageUrl,
       'currency': currency,
+      if (prevPrice != null) 'prevPrice': prevPrice,
+      if (priceChangedAt != null) 'priceChangedAt': Timestamp.fromDate(priceChangedAt!),
     };
   }
 

@@ -18,6 +18,13 @@ const _kOrange = Color(0xFFFF9F0A);
 const _kGreen = Color(0xFF30D158);
 const _kGray = Color(0xFF8E8E93);
 
+bool _hasRecentPriceChange(ProductModel product) {
+  final changedAt = product.priceChangedAt;
+  if (product.prevPrice == null || changedAt == null || product.prevPrice == product.price) return false;
+  final age = DateTime.now().difference(changedAt);
+  return !age.isNegative && age < const Duration(days: 7);
+}
+
 class ProductsGrid extends StatefulWidget {
   final String searchQuery;
   const ProductsGrid({super.key, this.searchQuery = ''});
@@ -353,9 +360,23 @@ class ProductCard extends StatelessWidget {
                         alignment: AlignmentDirectional.centerStart,
                         child: AnimatedBuilder(
                           animation: Pricing.instance,
-                          builder: (context, _) => Text(
-                            Pricing.instance.format(p),
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.accent),
+                          builder: (context, _) => Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                Pricing.instance.format(p),
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.accent),
+                              ),
+                              if (_hasRecentPriceChange(p))
+                                Padding(
+                                  padding: const EdgeInsetsDirectional.only(start: 3),
+                                  child: Icon(
+                                    p.price < p.prevPrice! ? Icons.arrow_downward : Icons.arrow_upward,
+                                    size: 13,
+                                    color: p.price < p.prevPrice! ? _kGreen : _kRed,
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                       ),
@@ -640,21 +661,36 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                         style: TextStyle(fontSize: 24, height: 1.3, fontWeight: FontWeight.w800, color: AppColors.text),
                       ),
                       const SizedBox(height: 10),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          AnimatedBuilder(
-                            animation: Pricing.instance,
-                            builder: (context, _) => Text(
+                      AnimatedBuilder(
+                        animation: Pricing.instance,
+                        builder: (context, _) => Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 8,
+                          runSpacing: 4,
+                          children: [
+                            Text(
                               Pricing.instance.format(p),
                               style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.accent),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          if (p.unit.isNotEmpty)
-                            Text('/ ${p.unit}', style: TextStyle(fontSize: 15, color: AppColors.textFaint)),
-                        ],
+                            if (_hasRecentPriceChange(p)) ...[
+                              Icon(
+                                p.price < p.prevPrice! ? Icons.arrow_downward : Icons.arrow_upward,
+                                size: 16,
+                                color: p.price < p.prevPrice! ? _kGreen : _kRed,
+                              ),
+                              Text(
+                                Pricing.instance.format(p.copyWith(price: p.prevPrice!)),
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: AppColors.textFaint,
+                                  decoration: TextDecoration.lineThrough,
+                                ),
+                              ),
+                            ],
+                            if (p.unit.isNotEmpty)
+                              Text('/ ${p.unit}', style: TextStyle(fontSize: 15, color: AppColors.textFaint)),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 16),
                       if (label != null)
