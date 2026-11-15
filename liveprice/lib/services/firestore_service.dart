@@ -51,7 +51,10 @@ class FirestoreService {
     }
   }
 
-  Future<int> publishCatalog() async {
+  Future<int> publishCatalog({
+    void Function(double? percent, String? stage)? onProgress,
+  }) async {
+    onProgress?.call(null, 'جاري قراءة الأسعار الحالية');
     final snapshot = await _db.collection(_collection).get(const GetOptions(source: Source.server));
     final publicSnapshot = await _db
         .collection('products_public')
@@ -62,10 +65,18 @@ class FirestoreService {
     };
     WriteBatch batch = _db.batch();
     var ops = 0;
+    var completedBatches = 0;
+    final totalBatches = (snapshot.docs.length / 400).ceil();
+    onProgress?.call(null, 'جاري نشر الكتالوج');
 
     Future<void> flush() async {
       if (ops == 0) return;
       await batch.commit();
+      completedBatches++;
+      onProgress?.call(
+        totalBatches == 0 ? 1 : completedBatches / totalBatches,
+        'جاري نشر الكتالوج',
+      );
       batch = _db.batch();
       ops = 0;
     }
@@ -91,20 +102,30 @@ class FirestoreService {
       if (ops == 400) await flush();
     }
     await flush();
+    if (totalBatches == 0) onProgress?.call(1, 'جاري نشر الكتالوج');
     return snapshot.docs.length;
   }
 
-  Future<void> uploadProductsBatch(List<Map<String, dynamic>> productsData) async {
+  Future<void> uploadProductsBatch(
+    List<Map<String, dynamic>> productsData, {
+    void Function(double? percent, String? stage)? onProgress,
+  }) async {
+    onProgress?.call(null, 'جاري قراءة الأسعار الحالية');
     final existing = await _db.collection(_collection).get(const GetOptions(source: Source.server));
     final current = {for (final d in existing.docs) d.id: d.data()};
+    final totalBatches = _countUploadBatches(productsData, current);
 
     WriteBatch batch = _db.batch();
     int ops = 0;
     int changed = 0;
+    var completedBatches = 0;
+    onProgress?.call(null, 'جاري رفع الأسعار');
 
     Future<void> flush() async {
       if (ops == 0) return;
       await batch.commit();
+      completedBatches++;
+      onProgress?.call(completedBatches / totalBatches, 'جاري رفع الأسعار');
       batch = _db.batch();
       ops = 0;
     }
@@ -180,8 +201,70 @@ class FirestoreService {
       if (ops >= 400) await flush();
     }
     await flush();
+    if (totalBatches == 0) onProgress?.call(1, 'جاري رفع الأسعار');
+    onProgress?.call(1, 'جاري النشر');
     if (changed > 0) {
       await _db.doc('settings/pricing').set({'pricesUpdatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
     }
+  }
+
+  int _countUploadBatches(
+    List<Map<String, dynamic>> productsData,
+    Map<String, Map<String, dynamic>> current,
+  ) {
+    var batchCount = 0;
+    var ops = 0;
+
+    for (final data in productsData) {
+      final id = (data['id'] ?? '').toString().trim();
+      if (id.isEmpty) continue;
+
+      final fields = Map<String, dynamic>.from(data)..remove('id');
+      final old = current[id];
+      if (old == null) {
+        fields.putIfAbsent('name', () => '');
+        fields.putIfAbsent('price', () => 0.0);
+        fields.putIfAbsent('currency', () => 'SYP');
+        fields.putIfAbsent('unit', () => '');
+        fields.putIfAbsent('category', () => '');
+        fields.putIfAbsent('imageUrl', () => '');
+      }
+
+      final newPrice = (fields['price'] as num?)?.toDouble();
+      final oldPrice = (old?['price'] as num?)?.toDouble();
+      final oldCur = old?['currency'] as String? ?? 'SYP';
+      final newCur = fields['currency'] as String? ?? oldCur;
+      final publicPriceChanged = old != null && oldPrice != null && newPrice != null && oldPrice != newPrice;
+
+      if (old != null) {
+        final nameChanged = fields['name'] != null && fields['name'] != old['name'];
+        final catalogFieldsChanged = [
+          'unit',
+          'category',
+          'imageUrl',
+        ].any((field) => fields.containsKey(field) && fields[field] != old[field]);
+        if (oldPrice == newPrice && oldCur == newCur && !nameChanged && !catalogFieldsChanged) continue;
+      }
+
+      var productOps = 1;
+      final publicFields = <String, dynamic>{
+        for (final field in ['name', 'price', 'currency', 'unit', 'category', 'imageUrl'])
+          if (fields.containsKey(field))
+            field: fields[field]
+          else if (old != null && old.containsKey(field))
+            field: old[field],
+      };
+      if (old == null || publicFields.isNotEmpty) productOps++;
+      if (publicPriceChanged) productOps++;
+
+      ops += productOps;
+      if (ops >= 400) {
+        batchCount++;
+        ops = 0;
+      }
+    }
+
+    if (ops > 0) batchCount++;
+    return batchCount;
   }
 }

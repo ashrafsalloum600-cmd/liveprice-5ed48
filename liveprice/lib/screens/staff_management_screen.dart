@@ -4,6 +4,7 @@ import 'package:liveprice/services/audit_service.dart';
 import 'package:liveprice/services/staff_session.dart';
 import 'package:liveprice/theme/app_colors.dart';
 import 'package:liveprice/widgets/app_message.dart';
+import 'package:liveprice/widgets/operation_progress.dart';
 
 const _branchNames = {'b1': 'المركز الرئيسي', 'b2': 'طرطوس', 'b3': 'جديدة البحر'};
 const _roleNames = {'manager': 'مدير فرع', 'owner': 'مالك'};
@@ -33,9 +34,26 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
   void _reload() => setState(() => _future = _load());
 
   Future<void> _save(String uid, Map<String, dynamic> data, {bool isNew = false}) async {
+    final title = isNew
+        ? 'إضافة موظف'
+        : data.containsKey('active')
+        ? 'تحديث حالة الموظف'
+        : 'تعديل موظف';
+    final stage = isNew
+        ? 'جاري إضافة الموظف'
+        : data.containsKey('active')
+        ? 'جاري تحديث حالة الموظف'
+        : 'جاري تعديل الموظف';
     try {
-      await FirebaseFirestore.instance.collection('staff').doc(uid).set(data, SetOptions(merge: true));
-      await AuditService.log(isNew ? 'staff_add' : 'staff_update', details: {'uid': uid, ...data});
+      await runWithProgress<void>(
+        context,
+        title,
+        (report) async {
+          report(null, stage);
+          await FirebaseFirestore.instance.collection('staff').doc(uid).set(data, SetOptions(merge: true));
+          await AuditService.log(isNew ? 'staff_add' : 'staff_update', details: {'uid': uid, ...data});
+        },
+      );
       showAppMessage(isNew ? 'تمت إضافة الموظف' : 'تم الحفظ');
       _reload();
     } catch (e) {

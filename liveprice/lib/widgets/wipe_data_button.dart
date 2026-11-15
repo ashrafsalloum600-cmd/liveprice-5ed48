@@ -4,6 +4,7 @@ import 'package:liveprice/services/audit_service.dart';
 import 'package:liveprice/services/danger_zone.dart';
 import 'package:liveprice/services/staff_session.dart';
 import 'package:liveprice/theme/app_colors.dart';
+import 'package:liveprice/widgets/operation_progress.dart';
 
 class WipeDataButton extends StatefulWidget {
   const WipeDataButton({super.key});
@@ -59,11 +60,19 @@ class _WipeDataButtonState extends State<WipeDataButton> {
 
   Future<void> _run() async {
     if (StaffSession.instance.profile?.isOwner != true) return;
-    if (!await _confirm()) return;
+    if (!await _confirm() || !mounted) return;
     setState(() => _busy = true);
     try {
-      final n = await DangerZone.wipeCatalogData();
-      await AuditService.log('wipe_catalog', details: {'ops': n});
+      final n = await runWithProgress<int>(
+        context,
+        'حذف البيانات',
+        (report) async {
+          report(null, 'جاري حذف البيانات');
+          final count = await DangerZone.wipeCatalogData();
+          await AuditService.log('wipe_catalog', details: {'ops': count});
+          return count;
+        },
+      );
       if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('تم الحذف ($n عملية). أوقف التطبيق وشغّله من جديد.')));

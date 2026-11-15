@@ -23,7 +23,6 @@ import 'services/pricing.dart';
 import 'widgets/app_drawer.dart';
 import 'widgets/pill_nav_bar.dart';
 import 'widgets/top_search_bar.dart';
-import 'screens/staff_gate_screen.dart'; // المسار الصحيح
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

@@ -9,6 +9,7 @@ import 'package:liveprice/services/firestore_service.dart';
 import 'package:liveprice/services/branch_inventory_store.dart';
 import 'package:liveprice/theme/app_colors.dart';
 import 'package:liveprice/widgets/wipe_data_button.dart';
+import 'package:liveprice/widgets/operation_progress.dart';
 
 class OwnerInventoryToolsScreen extends StatefulWidget {
   const OwnerInventoryToolsScreen({super.key});
@@ -26,13 +27,40 @@ class _OwnerInventoryToolsScreenState extends State<OwnerInventoryToolsScreen> {
   @override
   void initState() {
     super.initState();
-    _reload();
+    _reload(showAuditProgress: true);
   }
 
-  void _reload() {
+  void _reload({bool showAuditProgress = false}) {
     _productsFuture = FirestoreService().getProducts();
     _quantitiesFuture = BranchInventoryStore().loadAllQuantities();
-    _auditFuture = _loadAudit();
+    final reportReady = Future.wait<Object>([_productsFuture, _quantitiesFuture]).then<void>(
+      (_) {},
+      onError: (Object error, StackTrace stackTrace) {},
+    );
+    final reportProgressFuture = runWithProgress<void>(
+      context,
+      'جاري تحميل التقرير',
+      (report) async {
+        report(null, 'جاري تحميل التقرير');
+        await reportReady;
+      },
+    );
+    final auditFuture = showAuditProgress
+        ? reportProgressFuture.then((_) => _loadAuditWithProgress())
+        : _loadAudit();
+    _auditFuture = auditFuture;
+  }
+
+  Future<List<Map<String, dynamic>>> _loadAuditWithProgress() {
+    if (!mounted) return _loadAudit();
+    return runWithProgress(
+      context,
+      'جاري تحميل سجل الحركات',
+      (report) {
+        report(null, 'جاري تحميل سجل الحركات');
+        return _loadAudit();
+      },
+    );
   }
 
   Future<List<Map<String, dynamic>>> _loadAudit() async {
@@ -72,7 +100,11 @@ class _OwnerInventoryToolsScreenState extends State<OwnerInventoryToolsScreen> {
     if (confirmed != true || !mounted) return;
     setState(() => _publishing = true);
     try {
-      final count = await FirestoreService().publishCatalog();
+      final count = await runWithProgress<int>(
+        context,
+        'نشر الكتالوج',
+        (report) => FirestoreService().publishCatalog(onProgress: report),
+      );
       await AuditService.log('publish_catalog', details: {'count': count});
       showAppMessage('نُشر الكتالوج العام: $count منتج');
     } catch (error) {

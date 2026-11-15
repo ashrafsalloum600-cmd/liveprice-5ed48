@@ -11,6 +11,7 @@ import 'package:liveprice/services/inventory_mapping_service.dart';
 import 'package:liveprice/services/inventory_parser.dart';
 import 'package:liveprice/services/inventory_upload_service.dart';
 import 'package:liveprice/theme/app_colors.dart';
+import 'package:liveprice/widgets/operation_progress.dart';
 
 class InventoryUploadScreen extends StatefulWidget {
   const InventoryUploadScreen({super.key, required this.branchId, required this.branchName});
@@ -92,10 +93,17 @@ class _InventoryUploadScreenState extends State<InventoryUploadScreen> {
     if (result == null) return;
     setState(() => _savingMappings = true);
     try {
-      final saved = await InventoryMappingService().saveBranchMappings(
-        branchId: widget.branchId,
-        rows: result.rows,
-        matches: _matches,
+      final saved = await runWithProgress(
+        context,
+        'حفظ خريطة الربط',
+        (report) async {
+          report(null, 'جاري حفظ خريطة الربط');
+          return InventoryMappingService().saveBranchMappings(
+            branchId: widget.branchId,
+            rows: result.rows,
+            matches: _matches,
+          );
+        },
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -132,7 +140,11 @@ class _InventoryUploadScreenState extends State<InventoryUploadScreen> {
       );
       if (confirmed != true || !mounted) return;
       setState(() => _applyingInventory = true);
-      final updatedCount = await service.apply(preview);
+      final updatedCount = await runWithProgress(
+        context,
+        'تطبيق الكميات',
+        (report) => service.apply(preview, onProgress: report),
+      );
       if (mounted) {
         ScaffoldMessenger.of(
           context,

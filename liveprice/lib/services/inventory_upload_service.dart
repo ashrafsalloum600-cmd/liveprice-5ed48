@@ -149,8 +149,13 @@ class InventoryUploadService {
     );
   }
 
-  Future<int> apply(InventoryUploadPreview preview) async {
+  Future<int> apply(
+    InventoryUploadPreview preview, {
+    void Function(double percent, String stage)? onProgress,
+  }) async {
     if (preview.items.isEmpty) return 0;
+    final totalBatches = 1 + (preview.items.length / 400).ceil();
+    var completedBatches = 0;
     final session = StaffSession.instance;
     final user = session.user;
     final profile = session.profile;
@@ -188,6 +193,8 @@ class InventoryUploadService {
       },
     });
     await inventoryBatch.commit();
+    completedBatches++;
+    onProgress?.call(completedBatches / totalBatches, 'جاري تطبيق الكميات');
 
     for (var start = 0; start < preview.items.length; start += 400) {
       final end = (start + 400 < preview.items.length) ? start + 400 : preview.items.length;
@@ -199,6 +206,8 @@ class InventoryUploadService {
         }, SetOptions(merge: true));
       }
       await batch.commit();
+      completedBatches++;
+      onProgress?.call(completedBatches / totalBatches, 'جاري تطبيق الكميات');
     }
     return preview.items.length;
   }

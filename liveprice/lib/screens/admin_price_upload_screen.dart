@@ -11,6 +11,7 @@ import 'package:liveprice/screens/inventory_details_screen.dart';
 import 'package:liveprice/screens/owner_inventory_tools_screen.dart';
 import 'package:liveprice/widgets/admin_notification_widget.dart';
 import 'package:liveprice/widgets/admin_rate_widget.dart';
+import 'package:liveprice/widgets/operation_progress.dart';
 
 class AdminPriceUploadScreen extends StatefulWidget {
   const AdminPriceUploadScreen({super.key});
@@ -89,7 +90,7 @@ class _AdminPriceUploadScreenState extends State<AdminPriceUploadScreen> {
     }
 
     final confirmed = await _confirmUpload(items);
-    if (confirmed != true) return;
+    if (confirmed != true || !mounted) return;
 
     setState(() => _uploading = true);
     try {
@@ -100,7 +101,17 @@ class _AdminPriceUploadScreenState extends State<AdminPriceUploadScreen> {
         return map;
       }).toList();
 
-      await FirestoreService().uploadProductsBatch(normalized);
+      await runWithProgress<void>(
+        context,
+        'رفع الأسعار',
+        (report) {
+          report(null, 'جاري قراءة الملف');
+          return FirestoreService().uploadProductsBatch(
+            normalized,
+            onProgress: report,
+          );
+        },
+      );
 
       if (mounted) {
         showAppMessage('تم رفع ${normalized.length} عنصر بنجاح');
